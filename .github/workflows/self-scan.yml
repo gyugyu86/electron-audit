@@ -1,0 +1,38 @@
+# Dogfooding demo (separate from ci.yml): builds the tool from this commit
+# and scans the intentionally-vulnerable synthetic-vuln fixture, then uploads
+# the SARIF to GitHub code scanning — an end-to-end demonstration of the
+# scan → SARIF → Security-tab pipeline on the tool's own current code.
+name: self-scan (demo)
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+permissions:
+  contents: read
+  security-events: write # required to upload SARIF
+
+jobs:
+  self-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      # Scan the intentionally-vulnerable fixture with the freshly-built tool.
+      # --no-fail so this demo reports rather than failing the job (the fixture
+      # has gating findings by design).
+      - run: node dist/cli/index.js tests/corpus/synthetic-vuln --sarif --no-fail > synthetic-vuln.sarif
+
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: synthetic-vuln.sarif
+          category: synthetic-vuln-demo

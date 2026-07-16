@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # LTS, universally cached on runners; the code uses only APIs
+          # present since Node 18, so this matches local (Node 26) behavior.
+          node-version: 22.x
+          cache: npm
+
+      # `npm ci` installs exactly from the committed lockfile. All three test
+      # layers run offline from vendored code — no corpus is fetched at CI
+      # time — so this job is fully reproducible with no network beyond the
+      # dependency install.
+      - run: npm ci
+      - run: npm run build
+      - run: npm run lint
+      # Covers layer 1 (corpus snapshot regression), layer 2 (clean-corpus
+      # FP=0), and layer 3 (adversarial-input robustness) — a single `npm
+      # test` is the whole harness, so no separate steps are needed.
+      - run: npm test

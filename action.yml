@@ -1,0 +1,58 @@
+name: 'electron-audit'
+description: 'Static-analyze an Electron project for known security anti-patterns and report to GitHub code scanning (SARIF).'
+author: 'gyugyu86'
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  path:
+    description: 'Path to the Electron project to scan.'
+    required: false
+    default: '.'
+  version:
+    description: 'electron-audit version to run (npm dist-tag or exact version).'
+    required: false
+    default: 'latest'
+  sarif-file:
+    description: 'Path to write the SARIF result file.'
+    required: false
+    default: 'electron-audit.sarif'
+  upload:
+    description: 'Upload the SARIF to GitHub code scanning. Requires the job to grant security-events: write.'
+    required: false
+    default: 'true'
+  fail-on-findings:
+    description: 'Fail the check on high-confidence critical/high findings (the default gate). Set to false to report only.'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Scan with electron-audit
+      id: scan
+      shell: bash
+      run: |
+        set +e
+        npx --yes "electron-audit@${{ inputs.version }}" "${{ inputs.path }}" --sarif > "${{ inputs.sarif-file }}" 2>/dev/null
+        echo "exit-code=$?" >> "$GITHUB_OUTPUT"
+        # Never fail this step — the SARIF must be uploaded even when findings
+        # exist. The gate is enforced separately below.
+        exit 0
+
+    - name: Upload SARIF to code scanning
+      if: ${{ inputs.upload == 'true' }}
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ inputs.sarif-file }}
+
+    - name: Enforce findings gate
+      if: ${{ inputs.fail-on-findings == 'true' }}
+      shell: bash
+      run: |
+        if [ "${{ steps.scan.outputs.exit-code }}" != "0" ]; then
+          echo "::error::electron-audit found high-confidence critical/high issues."
+          exit 1
+        fi
+        echo "electron-audit: no gating findings."

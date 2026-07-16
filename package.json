@@ -1,0 +1,56 @@
+{
+  "name": "electron-audit",
+  "version": "0.1.0",
+  "description": "Static analyzer for common Electron security anti-patterns — low false positives, dataflow-aware, modern Electron.",
+  "type": "module",
+  "main": "dist/core/index.js",
+  "types": "dist/core/index.d.ts",
+  "bin": {
+    "electron-audit": "dist/cli/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gyugyu86/electron-audit.git"
+  },
+  "homepage": "https://github.com/gyugyu86/electron-audit#readme",
+  "bugs": {
+    "url": "https://github.com/gyugyu86/electron-audit/issues"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && chmod +x dist/cli/index.js",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "dev": "tsx src/cli/index.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "electron",
+    "security",
+    "static-analysis",
+    "cli"
+  ],
+  "author": "INGYU EUM",
+  "license": "MIT",
+  "dependencies": {
+    "@babel/parser": "^8.0.4",
+    "@babel/traverse": "^8.0.4",
+    "@babel/types": "^8.0.4",
+    "chalk": "^5.6.2",
+    "commander": "^15.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "@typescript-eslint/eslint-plugin": "^8.64.0",
+    "@typescript-eslint/parser": "^8.64.0",
+    "eslint": "^10.7.0",
+    "tsx": "^4.23.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
+  }
+}

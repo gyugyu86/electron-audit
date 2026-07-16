@@ -1,0 +1,1 @@
+{ "name": "app", "version": "1.0.0", "main": "main.js", "devDependencies": { "electron": "^40.0.0", "electron-builder": "^24.0.0" } }

@@ -1,0 +1,9 @@
+{
+  "name": "synthetic-vuln-corpus",
+  "version": "0.0.0",
+  "private": true,
+  "main": "main.js",
+  "devDependencies": {
+    "electron": "^31.0.0"
+  }
+}

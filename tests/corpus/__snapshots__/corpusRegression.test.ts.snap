@@ -1,0 +1,90 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`corpus regression: synthetic-vuln > matches the approved findings snapshot 1`] = `
+[
+  {
+    "confidence": "high",
+    "file": "main.js",
+    "line": 16,
+    "ruleId": "EA001",
+    "severity": "critical",
+  },
+  {
+    "confidence": "high",
+    "file": "main.js",
+    "line": 16,
+    "ruleId": "EA002",
+    "severity": "critical",
+  },
+  {
+    "confidence": "high",
+    "file": "main.js",
+    "line": 16,
+    "ruleId": "EA006",
+    "severity": "high",
+  },
+  {
+    "confidence": "heuristic",
+    "file": "main.js",
+    "line": 16,
+    "ruleId": "EA041",
+    "severity": "medium",
+  },
+  {
+    "confidence": "high",
+    "file": "main.js",
+    "line": 49,
+    "ruleId": "EA011",
+    "severity": "high",
+  },
+  {
+    "confidence": "high",
+    "file": "main.js",
+    "line": 49,
+    "ruleId": "EA012",
+    "severity": "medium",
+  },
+  {
+    "confidence": "high",
+    "file": "main.js",
+    "line": 57,
+    "ruleId": "EA020",
+    "severity": "critical",
+  },
+  {
+    "confidence": "high",
+    "file": "main.js",
+    "line": 63,
+    "ruleId": "EA021",
+    "severity": "critical",
+  },
+  {
+    "confidence": "heuristic",
+    "file": "main.js",
+    "line": 68,
+    "ruleId": "EA040",
+    "severity": "high",
+  },
+  {
+    "confidence": "heuristic",
+    "file": "package.json",
+    "line": 0,
+    "ruleId": "EA062",
+    "severity": "info",
+  },
+  {
+    "confidence": "high",
+    "file": "updater.js",
+    "line": 16,
+    "ruleId": "EA020",
+    "severity": "critical",
+  },
+  {
+    "confidence": "heuristic",
+    "file": "updater.js",
+    "line": 16,
+    "ruleId": "EA050",
+    "severity": "medium",
+  },
+]
+`;
