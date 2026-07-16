@@ -3,11 +3,12 @@ import { getWindowCallSites } from './shared/windowCallSites.js';
 import { isClearlySafeWindow, isDangerousWindow } from './shared/windowSafety.js';
 
 const WHY_DANGEROUS =
-  '같은 프로젝트 안에서 어떤 창은 안전하게(contextIsolation on / nodeIntegration off) 설정됐는데 다른 창은 ' +
-  '위험하게 설정돼 있습니다. 보통 메인 창만 신경 쓰고 자식 창(예: open-win 류)의 webPreferences를 빠뜨린 실수로, ' +
-  '공격자는 방어가 약한 창을 노립니다. dnsChanger의 실제 취약 패턴이 이것이었습니다.';
+  'One window in this project is configured safely (contextIsolation on / nodeIntegration off) while another is ' +
+  'configured dangerously. This usually happens when a team hardens the main window but forgets a child window\'s ' +
+  '(e.g. an "open-win"-style) webPreferences — and an attacker goes after whichever window has the weaker defenses. ' +
+  "This was the actual vulnerable pattern in dnsChanger.";
 
-const RECOMMENDATION = `모든 BrowserWindow 생성 지점에 동일한 안전 설정을 적용하세요. 공용 팩토리로 webPreferences를 한 곳에서 관리하면 창마다 빠뜨리는 실수를 막을 수 있습니다.
+const RECOMMENDATION = `Apply the same safe settings everywhere you create a BrowserWindow. Managing webPreferences through one shared factory prevents any single window from being missed.
 
 function createSecureWindow(opts) {
   return new BrowserWindow({
@@ -31,7 +32,7 @@ export const EA006: AggregateRule = {
   id: 'EA006',
   kind: 'aggregate',
   severity: 'high',
-  target: '창 간 webPreferences 불일치 (안전한 창과 위험한 창 혼재)',
+  target: 'Inconsistent webPreferences across windows (a safe window alongside an unsafe one)',
   whyDangerous: WHY_DANGEROUS,
   recommendation: RECOMMENDATION,
   check(context: AggregateRuleContext): Finding[] {
@@ -54,7 +55,7 @@ export const EA006: AggregateRule = {
       confidence: 'high',
       file: site.file,
       line: site.line,
-      target: '이 창은 위험하게 설정됐으나 같은 프로젝트의 다른 창은 안전하게 설정됨',
+      target: 'This window is configured dangerously, while another window in the same project is configured safely',
       whyDangerous: WHY_DANGEROUS,
       recommendation: RECOMMENDATION,
     }));

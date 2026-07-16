@@ -17,12 +17,13 @@ const UNPARSEABLE_CONFIG_FILES = [
 ];
 
 const WHY_DANGEROUS =
-  '코드 서명 설정이 없으면 배포 산출물이 서명되지 않아, 사용자 OS가 "확인되지 않은 개발자" 경고를 띄우고 ' +
-  '자동 업데이트 무결성 검증도 약해집니다. 서명되지 않은 빌드는 중간자 변조를 탐지하기 어렵습니다.';
+  'Without a code-signing configuration, release builds ship unsigned — the user\'s OS shows an "unidentified ' +
+  'developer" warning, and auto-update integrity verification is weaker too. An unsigned build is harder to ' +
+  'detect tampering on in transit.';
 
-const RECOMMENDATION = `electron-builder 설정에 플랫폼별 코드 서명을 추가하세요.
+const RECOMMENDATION = `Add platform code signing to your electron-builder configuration.
 
-// package.json "build" 또는 electron-builder.json
+// package.json "build", or electron-builder.json
 "mac": { "identity": "Developer ID Application: Your Name (TEAMID)" },
 "win": { "certificateSubjectName": "Your Company" }`;
 
@@ -30,7 +31,7 @@ export const EA061: AggregateRule = {
   id: 'EA061',
   kind: 'aggregate',
   severity: 'low',
-  target: 'electron-builder 코드 서명 설정 부재',
+  target: 'electron-builder has no code-signing configuration',
   whyDangerous: WHY_DANGEROUS,
   recommendation: RECOMMENDATION,
   check(context: AggregateRuleContext): Finding[] {
@@ -68,7 +69,7 @@ export const EA061: AggregateRule = {
         confidence: 'heuristic',
         file: context.project.packageJsonPath ?? path.join(rootDir, 'package.json'),
         line: 0,
-        target: 'electron-builder를 쓰지만 코드 서명(mac.identity / win.certificate*) 설정이 없음',
+        target: 'electron-builder is used, but no code-signing (mac.identity / win.certificate*) is configured',
         whyDangerous: WHY_DANGEROUS,
         recommendation: RECOMMENDATION,
       },

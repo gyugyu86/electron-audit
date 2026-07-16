@@ -2,16 +2,16 @@ import type { Finding, NodeRule, NodeRuleContext } from '../types.js';
 import { getWindowCallSites } from './shared/windowCallSites.js';
 
 const WHY_DANGEROUS =
-  'allowRunningInsecureContent: true는 https 페이지가 http로 된 스크립트 등 혼합(mixed) 콘텐츠를 실행하도록 ' +
-  '허용합니다. 중간자 공격자가 http 리소스를 바꿔치기해 페이지에서 임의 코드를 실행할 수 있습니다.';
+  'allowRunningInsecureContent: true lets an https page run mixed content, such as scripts served over http. A ' +
+  'man-in-the-middle attacker can swap out that http resource to run arbitrary code on the page.';
 
-const RECOMMENDATION = `allowRunningInsecureContent를 켜지 마세요(기본값 false 유지). 모든 리소스를 https로 제공하세요.
+const RECOMMENDATION = `Don't turn allowRunningInsecureContent on (keep the default of false). Serve every resource over https.
 
-// 취약
+// vulnerable
 new BrowserWindow({ webPreferences: { allowRunningInsecureContent: true } });
 
-// 수정
-new BrowserWindow({ webPreferences: { /* allowRunningInsecureContent 기본값 false 유지 */ } });`;
+// fixed
+new BrowserWindow({ webPreferences: { /* keep allowRunningInsecureContent at its default (false) */ } });`;
 
 export const EA005: NodeRule = {
   id: 'EA005',
@@ -35,8 +35,8 @@ export const EA005: NodeRule = {
         findings.push({
           ...base,
           confidence: 'heuristic',
-          target: 'allowRunningInsecureContent: <변수/표현식>',
-          whyDangerous: `${WHY_DANGEROUS} (값이 변수/표현식이라 실행 시점에 켜질 수 있습니다.)`,
+          target: 'allowRunningInsecureContent: <variable/expression>',
+          whyDangerous: `${WHY_DANGEROUS} (The value is a variable/expression, so it could be turned on at runtime.)`,
         });
       }
     }

@@ -9,17 +9,18 @@ import { getWindowCallSites } from './shared/windowCallSites.js';
 const REMOTE_REMOVED_IN = 14;
 
 const WHY_DANGEROUS =
-  'enableRemoteModule: true는 렌더러가 메인 프로세스의 객체·모듈(app, BrowserWindow, fs 등)을 remote 모듈로 직접 ' +
-  '동기 호출하게 해줍니다. nodeIntegration만큼은 아니어도 렌더러 침해 시 강력한 권한을 그대로 넘겨주는 통로가 되고, ' +
-  '프로토타입 오염 등으로 악용되기 쉽습니다.';
+  'enableRemoteModule: true lets the renderer synchronously call main-process objects and modules (app, ' +
+  'BrowserWindow, fs, etc.) directly through the remote module. It\'s not as severe as nodeIntegration, but it\'s ' +
+  'still a channel that hands over substantial privileges once the renderer is compromised, and it\'s an easy ' +
+  'target for exploitation via prototype pollution and similar techniques.';
 
-const RECOMMENDATION = `enableRemoteModule를 끄고(제거하고), 필요한 기능은 preload + contextBridge + ipcRenderer로 명시적으로 노출하세요.
+const RECOMMENDATION = `Turn enableRemoteModule off (remove it), and expose only what you need explicitly through preload + contextBridge + ipcRenderer.
 
 // preload.js
 contextBridge.exposeInMainWorld('api', {
   getPath: () => ipcRenderer.invoke('get-path'),
 });
-// 메인
+// main process
 ipcMain.handle('get-path', () => app.getPath('userData'));`;
 
 export const EA007: NodeRule = {
@@ -46,8 +47,8 @@ export const EA007: NodeRule = {
             ...base,
             severity: 'info',
             confidence: 'high',
-            target: 'enableRemoteModule: true (Electron 14+에서는 제거되어 무효)',
-            whyDangerous: `이 설정은 Electron ${REMOTE_REMOVED_IN}부터 제거되어 실제 효력은 없습니다. 다만 남아 있는 죽은 설정이니 정리하는 게 좋습니다. (구버전에서라면: ${WHY_DANGEROUS})`,
+            target: 'enableRemoteModule: true (removed and ineffective on Electron 14+)',
+            whyDangerous: `This setting has had no effect since it was removed in Electron ${REMOTE_REMOVED_IN} — but it's still worth cleaning up as dead config. (On an older version it would matter: ${WHY_DANGEROUS})`,
           });
         } else if (major !== undefined) {
           // Known old version where the remote module still exists → real.
@@ -59,8 +60,8 @@ export const EA007: NodeRule = {
             ...base,
             severity: 'high',
             confidence: 'heuristic',
-            target: 'enableRemoteModule: true (electron 버전 불명)',
-            whyDangerous: `${WHY_DANGEROUS} (electron 버전을 확인하지 못했습니다 — 14 미만이면 위험하고, 14 이상이면 무효인 죽은 설정입니다.)`,
+            target: 'enableRemoteModule: true (Electron version unknown)',
+            whyDangerous: `${WHY_DANGEROUS} (Couldn't determine the Electron version — this is dangerous below 14, and dead/ineffective config at 14 or above.)`,
           });
         }
       } else if (state === 'dynamic') {
@@ -68,8 +69,8 @@ export const EA007: NodeRule = {
           ...base,
           severity: 'high',
           confidence: 'heuristic',
-          target: 'enableRemoteModule: <변수/표현식>',
-          whyDangerous: `${WHY_DANGEROUS} (값이 변수/표현식이라 실행 시점에 켜질 수 있습니다.)`,
+          target: 'enableRemoteModule: <variable/expression>',
+          whyDangerous: `${WHY_DANGEROUS} (The value is a variable/expression, so it could be turned on at runtime.)`,
         });
       }
       // absent / explicit-false → remote module not enabled → silent.

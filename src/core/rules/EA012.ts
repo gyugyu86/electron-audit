@@ -2,15 +2,15 @@ import type { AggregateRule, AggregateRuleContext, Finding } from '../types.js';
 import { collectCspStrings, findWildcardCspDirectives } from './shared/cspSites.js';
 
 const WHY_DANGEROUS =
-  'CSP 디렉티브의 소스가 와일드카드 `*` 하나면 모든 오리진을 허용하는 것과 같아 CSP가 사실상 없는 것과 다르지 ' +
-  '않습니다. 임의의 원격 스크립트/리소스가 로드될 수 있습니다.';
+  'A CSP directive whose source is a bare wildcard `*` allows every origin — no different in practice from having ' +
+  'no CSP at all. Arbitrary remote scripts or resources can be loaded.';
 
-const RECOMMENDATION = `\`*\` 대신 실제로 필요한 오리진만 명시하세요. 서브도메인이 필요하면 \`*.example.com\`처럼 도메인을 고정하세요.
+const RECOMMENDATION = `List only the origins you actually need instead of \`*\`. If you need subdomains, pin the domain like \`*.example.com\`.
 
-// 취약
+// vulnerable
 "default-src *"
 
-// 수정
+// fixed
 "default-src 'self' https://api.example.com"`;
 
 // Aggregate: judges the unified CSP surface (JS response headers + HTML
@@ -23,7 +23,7 @@ export const EA012: AggregateRule = {
   id: 'EA012',
   kind: 'aggregate',
   severity: 'medium',
-  target: 'CSP 소스가 와일드카드 `*` (모든 오리진 허용)',
+  target: 'CSP source is a wildcard `*` (allows every origin)',
   whyDangerous: WHY_DANGEROUS,
   recommendation: RECOMMENDATION,
   check(context: AggregateRuleContext): Finding[] {
@@ -37,7 +37,7 @@ export const EA012: AggregateRule = {
           confidence: 'high',
           file: csp.file,
           line: csp.line,
-          target: `${directive}에 와일드카드 \`*\``,
+          target: `${directive} has a wildcard \`*\``,
           whyDangerous: WHY_DANGEROUS,
           recommendation: RECOMMENDATION,
         });

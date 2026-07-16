@@ -3,18 +3,19 @@ import { hasAnyCspConfigured } from './shared/cspSites.js';
 import { getWindowCallSites } from './shared/windowCallSites.js';
 
 const WHY_DANGEROUS =
-  '프로젝트의 JS/TS 코드와 HTML <meta>를 모두 살폈지만 Content-Security-Policy 설정을 찾지 못했습니다. CSP가 없으면 ' +
-  '렌더러가 로드한 콘텐츠에서 인라인 스크립트·원격 스크립트 실행을 막을 방어선이 사라져 XSS의 피해가 그대로 확대됩니다.';
+  "This project's JS/TS code and HTML <meta> were both checked, but no Content-Security-Policy configuration was " +
+  'found. Without a CSP, there\'s no defense left against inline or remote script execution in whatever content ' +
+  "the renderer loads, so the impact of any XSS is unconstrained.";
 
 // The scope caveat is part of the finding message, not just docs. HTML <meta>
 // CSP is now checked too (shallow regex), so the remaining blind spots are
 // narrower — a CSP assembled dynamically, or set by non-standard means — but
 // they still exist, so this stays heuristic rather than a certainty claim.
 const SCOPE_NOTE =
-  '(한계: <meta> CSP는 얕은 정규식으로만 봅니다. 동적으로 조립하거나 비표준 방식으로 설정한 CSP는 놓칠 수 있어 ' +
-  'heuristic으로 보고합니다.)';
+  '(Limit: <meta> CSP is only read via a shallow regex. A CSP assembled dynamically, or set through a ' +
+  'non-standard mechanism, can be missed — reported as heuristic for that reason.)';
 
-const RECOMMENDATION = `메인 프로세스에서 응답 헤더로 CSP를 설정하거나, 렌더러 HTML에 <meta>로 설정하세요.
+const RECOMMENDATION = `Set a CSP via a response header in the main process, or via a <meta> tag in the renderer's HTML.
 
 session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
   callback({
@@ -33,7 +34,7 @@ export const EA010: AggregateRule = {
   id: 'EA010',
   kind: 'aggregate',
   severity: 'high',
-  target: 'Content-Security-Policy 설정이 없음 (JS/TS·HTML <meta> 모두)',
+  target: 'No Content-Security-Policy configuration (checked both JS/TS and HTML <meta>)',
   whyDangerous: `${WHY_DANGEROUS} ${SCOPE_NOTE}`,
   recommendation: RECOMMENDATION,
   check(context: AggregateRuleContext): Finding[] {
@@ -61,7 +62,7 @@ export const EA010: AggregateRule = {
         confidence: 'heuristic',
         file: anchor.file,
         line: anchor.line,
-        target: 'JS/TS·HTML <meta> 어디에도 Content-Security-Policy 설정이 없음',
+        target: 'No Content-Security-Policy configuration anywhere in JS/TS or HTML <meta>',
         whyDangerous: `${WHY_DANGEROUS} ${SCOPE_NOTE}`,
         recommendation: RECOMMENDATION,
       },

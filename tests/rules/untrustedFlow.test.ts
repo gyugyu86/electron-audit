@@ -29,7 +29,7 @@ describe('EA050 untrusted deserialization / external input -> sink', () => {
   it('C: ipc handler arg -> fs path sink fires, tagged as a path sink', () => {
     const result = run('EA050/vulnerable-ipc-fs');
     expect(result.findings).toHaveLength(1);
-    expect(result.findings[0]?.target).toContain('파일 경로');
+    expect(result.findings[0]?.target).toContain('file path');
   });
 
   it('stays silent for JSON.parse of a local fs read (local config, not external)', () => {

@@ -15,11 +15,12 @@ const LATEST_KNOWN_ELECTRON_MAJOR = 40;
 const STALE_THRESHOLD_MAJORS = 5;
 
 const WHY_DANGEROUS =
-  'Electron은 대략 최신 3개 메이저 버전만 보안 패치를 제공합니다. 그보다 크게 뒤처진 버전은 Chromium·Node.js의 ' +
-  '알려진 취약점이 수정되지 않은 채 남아 있을 수 있습니다. (기준 최신 버전은 이 도구에 하드코딩되어 있어 실제보다 ' +
-  '오래됐을 수 있으니, 정확한 최신 버전은 직접 확인하세요.)';
+  'Electron generally only ships security patches for roughly the latest 3 majors. A version significantly ' +
+  "further behind than that may still carry known, unpatched Chromium/Node.js vulnerabilities. (The baseline " +
+  "'latest' version is hardcoded in this tool and can lag behind the real latest, so verify the actual current " +
+  'version yourself.)';
 
-const RECOMMENDATION = `electron 의존성을 최신 안정 메이저로 올리고, 릴리스 노트의 호환성 변경사항을 확인하세요.
+const RECOMMENDATION = `Upgrade the electron dependency to the latest stable major, and check the release notes for compatibility changes.
 
 // package.json
 "devDependencies": {
@@ -30,7 +31,7 @@ export const EA062: AggregateRule = {
   id: 'EA062',
   kind: 'aggregate',
   severity: 'info',
-  target: 'package.json의 electron 버전이 최신 대비 크게 뒤처짐',
+  target: "The electron version in package.json is far behind the latest",
   whyDangerous: WHY_DANGEROUS,
   recommendation: RECOMMENDATION,
   check(context: AggregateRuleContext): Finding[] {
@@ -51,7 +52,7 @@ export const EA062: AggregateRule = {
         confidence: 'heuristic',
         file: context.project.packageJsonPath ?? 'package.json',
         line: 0,
-        target: `electron ${major}.x (기준 최신 ${LATEST_KNOWN_ELECTRON_MAJOR}.x 대비 ${LATEST_KNOWN_ELECTRON_MAJOR - major} 메이저 뒤처짐)`,
+        target: `electron ${major}.x (${LATEST_KNOWN_ELECTRON_MAJOR - major} majors behind our baseline of ${LATEST_KNOWN_ELECTRON_MAJOR}.x)`,
         whyDangerous: WHY_DANGEROUS,
         recommendation: RECOMMENDATION,
       },

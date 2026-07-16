@@ -12,19 +12,20 @@ import { isShellOpenExternalCallee } from './shared/externalInteraction.js';
 const SAFE_SCHEMES = new Set(['https', 'http', 'mailto']);
 
 const WHY_DYNAMIC =
-  'shell.openExternal에 정적으로 확정할 수 없는 값이 전달됩니다. 스킴 화이트리스트 없이 임의 URL이 열리면 ' +
-  'file://(로컬 파일 접근)이나 javascript:/data:(코드 실행) 같은 위험한 스킴이 외부 입력으로 주입될 수 있습니다.';
+  "A value that can't be statically determined is passed to shell.openExternal. Without a scheme allowlist, an " +
+  'arbitrary URL could be opened, letting a dangerous scheme — file: (local file access) or javascript:/data: ' +
+  '(code execution) — be injected via external input.';
 
 const WHY_UNSAFE_LITERAL =
-  'shell.openExternal에 안전하지 않은 스킴(file:/javascript:/data: 등)의 URL이 전달됩니다. 이런 스킴은 로컬 ' +
-  '리소스 접근이나 코드 실행으로 이어질 수 있어 외부 브라우저로 넘길 대상이 아닙니다.';
+  'A URL with an unsafe scheme (file:/javascript:/data:, etc.) is passed to shell.openExternal. These schemes can ' +
+  "lead to local resource access or code execution, and shouldn't be handed to an external browser.";
 
-const RECOMMENDATION = `열기 전에 스킴을 https/http(필요 시 mailto)로 화이트리스트 검증하세요.
+const RECOMMENDATION = `Allowlist the scheme to https/http (and mailto if needed) before opening.
 
-// 취약
+// vulnerable
 shell.openExternal(url);
 
-// 수정 — 안전한 스킴만 통과
+// fixed — only a safe scheme gets through
 function openSafely(url) {
   const { protocol } = new URL(url);
   if (protocol === 'https:' || protocol === 'http:') {
@@ -36,7 +37,7 @@ export const EA040: NodeRule = {
   id: 'EA040',
   kind: 'node',
   severity: 'high',
-  target: 'shell.openExternal(<검증되지 않은/위험한 스킴 URL>)',
+  target: 'shell.openExternal(<unvalidated URL / unsafe scheme>)',
   whyDangerous: WHY_DYNAMIC,
   recommendation: RECOMMENDATION,
   check(context: NodeRuleContext): Finding[] {
@@ -80,7 +81,7 @@ export const EA040: NodeRule = {
           confidence: 'heuristic',
           file: context.file.path,
           line,
-          target: 'shell.openExternal(<변수/표현식>)',
+          target: 'shell.openExternal(<variable/expression>)',
           whyDangerous: WHY_DYNAMIC,
           recommendation: RECOMMENDATION,
         });

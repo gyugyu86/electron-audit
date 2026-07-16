@@ -3,10 +3,10 @@ import { findCspHeaderSites } from './shared/cspSites.js';
 import { tokenizeCsp } from '../csp/cspTokenizer.js';
 
 const WHY_DANGEROUS =
-  'CSP에 Cordova/하이브리드 앱에서 쓰이는 `gap:` 스킴이 남아 있습니다. 위험이라기보다, 다른 프로젝트의 CSP를 ' +
-  '그대로 붙여넣었을 가능성을 알리는 신호입니다 — 이 앱에 실제로 필요한 값인지 점검하세요.';
+  'The CSP still contains the `gap:` scheme used by Cordova/hybrid apps. This is less a vulnerability than a sign ' +
+  "that a CSP was pasted in from another project — check whether this app actually needs it.";
 
-const RECOMMENDATION = `Electron 앱에 필요 없는 Cordova 잔재(\`gap:\` 등)를 CSP에서 제거하고, 이 앱에 맞는 소스만 남기세요.`;
+const RECOMMENDATION = `Remove Cordova leftovers (\`gap:\` and similar) that an Electron app doesn't need, and keep only the sources this app actually requires.`;
 
 // info-level, high-confidence (the token is unambiguously present). Kept
 // narrow to a clear Cordova signature (`gap:`) to avoid over-flagging.
@@ -14,7 +14,7 @@ export const EA013: NodeRule = {
   id: 'EA013',
   kind: 'node',
   severity: 'info',
-  target: 'CSP에 Cordova 잔재(`gap:`) 시그니처',
+  target: 'CSP has a Cordova leftover (`gap:`) signature',
   whyDangerous: WHY_DANGEROUS,
   recommendation: RECOMMENDATION,
   check(context: NodeRuleContext): Finding[] {
@@ -30,7 +30,7 @@ export const EA013: NodeRule = {
               confidence: 'high',
               file: context.file.path,
               line: site.line,
-              target: `${directive.name}에 \`gap:\` (Cordova 잔재)`,
+              target: `${directive.name} has \`gap:\` (Cordova leftover)`,
               whyDangerous: WHY_DANGEROUS,
               recommendation: RECOMMENDATION,
             });

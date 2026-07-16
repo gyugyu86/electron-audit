@@ -2,17 +2,18 @@ import type { AggregateRule, AggregateRuleContext, Finding } from '../types.js';
 import { collectCspStrings, findUnsafeCspHits } from './shared/cspSites.js';
 
 const WHY_DANGEROUS =
-  "CSP에 'unsafe-inline' 또는 'unsafe-eval'이 있으면 인라인 스크립트/스타일이나 eval 계열 실행이 허용됩니다. " +
-  '스크립트 실행 디렉티브(script-src/default-src)의 unsafe-inline·모든 unsafe-eval은 XSS→코드실행 경로라 high로, ' +
-  '그 외 디렉티브(style-src 등)의 unsafe-inline은 공격 표면이 제한적이라 medium으로 보고합니다.';
+  "'unsafe-inline' or 'unsafe-eval' in a CSP allows inline script/style or eval-family execution. unsafe-inline in " +
+  "a script-execution directive (script-src/default-src), and unsafe-eval anywhere, are an XSS-to-code-execution " +
+  "path and are reported at high; unsafe-inline in other directives (style-src, etc.) has a more limited attack " +
+  "surface and is reported at medium.";
 
-const RECOMMENDATION = `'unsafe-inline'/'unsafe-eval'을 제거하고, 필요한 인라인은 nonce나 hash로 개별 허용하세요.
+const RECOMMENDATION = `Remove 'unsafe-inline'/'unsafe-eval', and allow specific inline content individually via a nonce or hash instead.
 
-// 취약
+// vulnerable
 "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
 
-// 수정
-"script-src 'self' 'nonce-<요청마다 생성한 값>'"`;
+// fixed
+"script-src 'self' 'nonce-<generated-per-request>'"`;
 
 // Aggregate (not per-file): the CSP surface now spans JS response-header sites
 // AND HTML <meta> tags, so it's judged project-wide from the unified
@@ -38,7 +39,7 @@ export const EA011: AggregateRule = {
           confidence: 'high',
           file: csp.file,
           line: csp.line,
-          target: `${hit.directive}에 ${hit.keywords.join(', ')}`,
+          target: `${hit.directive} has ${hit.keywords.join(', ')}`,
           whyDangerous: WHY_DANGEROUS,
           recommendation: RECOMMENDATION,
         });

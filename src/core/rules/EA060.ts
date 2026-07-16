@@ -28,11 +28,12 @@ function isTelemetryPackage(name: string): boolean {
 }
 
 const WHY_DANGEROUS =
-  '이 SDK는 사용자 행동/기기 정보를 외부 서버로 전송하는 애널리틱스·텔레메트리 용도입니다. 보안 취약점은 아니지만, ' +
-  '어떤 데이터가 수집·전송되는지 사용자에게 고지하고 옵트아웃 수단을 제공해야 프라이버시 규정(GDPR 등)에 부합합니다.';
+  "This SDK is an analytics/telemetry tool that sends user behavior/device information to an external server. " +
+  "It's not a security vulnerability, but complying with privacy regulations (GDPR, etc.) requires disclosing what " +
+  'data is collected and sent, and providing a way to opt out.';
 
-const RECOMMENDATION = `수집 항목을 개인정보 처리방침에 명시하고, 최초 실행 시 동의(opt-in) 또는 옵트아웃을 제공하세요.
-민감 정보(파일 경로, 입력 내용 등)가 이벤트에 실려 나가지 않는지 점검하세요.`;
+const RECOMMENDATION = `Document what's collected in your privacy policy, and offer opt-in consent (or an opt-out) on first run.
+Check that sensitive information (file paths, input content, etc.) isn't riding along in these events.`;
 
 // A telemetry SDK detected in the project — either imported in a source file
 // (with a location) or declared in package.json (anchored at the manifest).
@@ -46,7 +47,7 @@ export const EA060: AggregateRule = {
   id: 'EA060',
   kind: 'aggregate',
   severity: 'info',
-  target: '애널리틱스/텔레메트리 SDK 사용 (프라이버시 고지 목적, 취약점 아님)',
+  target: 'Analytics/telemetry SDK in use (a privacy notice, not a vulnerability)',
   whyDangerous: WHY_DANGEROUS,
   recommendation: RECOMMENDATION,
   check(context: AggregateRuleContext): Finding[] {
@@ -76,7 +77,7 @@ export const EA060: AggregateRule = {
       confidence: 'heuristic',
       file: detection.file,
       line: detection.line,
-      target: `${detection.sdk} (애널리틱스/텔레메트리 SDK)`,
+      target: `${detection.sdk} (analytics/telemetry SDK)`,
       whyDangerous: WHY_DANGEROUS,
       recommendation: RECOMMENDATION,
     }));

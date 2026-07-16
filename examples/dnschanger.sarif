@@ -6,8 +6,8 @@
       "tool": {
         "driver": {
           "name": "electron-audit",
-          "informationUri": "https://www.npmjs.com/package/electron-audit",
-          "version": "0.0.1",
+          "informationUri": "https://github.com/gyugyu86/electron-audit",
+          "version": "0.1.0",
           "rules": [
             {
               "id": "EA001",
@@ -16,10 +16,10 @@
                 "text": "BrowserWindow webPreferences.nodeIntegration"
               },
               "fullDescription": {
-                "text": "nodeIntegration: true는 렌더러 프로세스에 Node.js API(fs, child_process, require 등)를 그대로 노출합니다. 렌더러가 로드하는 페이지에서 XSS 등으로 임의 스크립트가 실행되면 그 즉시 파일시스템 접근·프로세스 실행 권한까지 함께 탈취됩니다."
+                "text": "nodeIntegration: true exposes the full Node.js API (fs, child_process, require, etc.) directly to the renderer process. If the page the renderer loads runs attacker-controlled script — via XSS or similar — it immediately gains filesystem access and the ability to execute processes."
               },
               "help": {
-                "text": "nodeIntegration을 끄고, preload + contextBridge로 필요한 API만 선택적으로 노출하세요.\n\n// 메인 프로세스\nconst win = new BrowserWindow({\n  webPreferences: {\n    nodeIntegration: false,\n    contextIsolation: true,\n    preload: path.join(__dirname, 'preload.js'),\n  },\n});\n\n// preload.js — 필요한 기능만 골라서 노출\ncontextBridge.exposeInMainWorld('api', {\n  doSomething: () => ipcRenderer.invoke('do-something'),\n});"
+                "text": "Turn nodeIntegration off, and expose only the specific APIs you need through preload + contextBridge.\n\n// main process\nconst win = new BrowserWindow({\n  webPreferences: {\n    nodeIntegration: false,\n    contextIsolation: true,\n    preload: path.join(__dirname, 'preload.js'),\n  },\n});\n\n// preload.js — expose only what's needed\ncontextBridge.exposeInMainWorld('api', {\n  doSomething: () => ipcRenderer.invoke('do-something'),\n});"
               },
               "defaultConfiguration": {
                 "level": "error"
@@ -35,10 +35,10 @@
                 "text": "BrowserWindow webPreferences.contextIsolation"
               },
               "fullDescription": {
-                "text": "contextIsolation이 꺼져 있으면 preload 스크립트와 렌더러 페이지가 같은 JS 컨텍스트를 공유합니다. 페이지의 악성 스크립트가 preload가 노출한 객체나 Electron 내부 API를 프로토타입 오염 등으로 탈취해 권한을 확대할 수 있습니다."
+                "text": "With contextIsolation off, the preload script and the renderer page share the same JS context. A malicious script on the page can hijack objects the preload exposed, or Electron internals, via prototype pollution and similar techniques, to escalate its privileges."
               },
               "help": {
-                "text": "contextIsolation을 켜고(기본값 유지) preload에서는 contextBridge로만 API를 노출하세요.\n\nconst win = new BrowserWindow({\n  webPreferences: {\n    contextIsolation: true,\n    preload: path.join(__dirname, 'preload.js'),\n  },\n});"
+                "text": "Turn contextIsolation on (keep the default) and expose APIs from preload only through contextBridge.\n\nconst win = new BrowserWindow({\n  webPreferences: {\n    contextIsolation: true,\n    preload: path.join(__dirname, 'preload.js'),\n  },\n});"
               },
               "defaultConfiguration": {
                 "level": "error"
@@ -54,10 +54,10 @@
                 "text": "BrowserWindow webPreferences.sandbox"
               },
               "fullDescription": {
-                "text": "sandbox가 꺼지면 렌더러 프로세스가 OS 샌드박스 밖에서 실행되어, 렌더러가 침해됐을 때 공격자가 Node 및 시스템 리소스에 훨씬 쉽게 접근합니다. 샌드박스는 렌더러 침해의 피해를 가두는 핵심 방어선입니다."
+                "text": "With sandbox off, the renderer process runs outside the OS sandbox — if the renderer is compromised, an attacker gets much easier access to Node and system resources. The sandbox is the primary containment for renderer compromise."
               },
               "help": {
-                "text": "sandbox를 켜세요(기본값 유지). preload는 sandbox 호환 API만 사용하도록 작성합니다.\n\nconst win = new BrowserWindow({\n  webPreferences: {\n    sandbox: true,\n    contextIsolation: true,\n    preload: path.join(__dirname, 'preload.js'),\n  },\n});"
+                "text": "Turn sandbox on (keep the default). Write preload to use only sandbox-compatible APIs.\n\nconst win = new BrowserWindow({\n  webPreferences: {\n    sandbox: true,\n    contextIsolation: true,\n    preload: path.join(__dirname, 'preload.js'),\n  },\n});"
               },
               "defaultConfiguration": {
                 "level": "error"
@@ -73,10 +73,10 @@
                 "text": "BrowserWindow webPreferences.webSecurity"
               },
               "fullDescription": {
-                "text": "webSecurity: false는 동일 출처 정책(SOP)을 끄고 원격 리소스를 무분별하게 로드/실행하도록 허용합니다. XSS와 데이터 유출 방어가 통째로 사라집니다."
+                "text": "webSecurity: false disables the same-origin policy (SOP) and lets the page load and run remote resources indiscriminately. It removes XSS and data-exfiltration protections wholesale."
               },
               "help": {
-                "text": "webSecurity를 끄지 마세요(기본값 true 유지). 개발 중 CORS 회피가 필요하면 그 목적에 맞는 별도 수단을 쓰세요.\n\n// 취약\nnew BrowserWindow({ webPreferences: { webSecurity: false } });\n\n// 수정\nnew BrowserWindow({ webPreferences: { /* webSecurity 기본값 true 유지 */ } });"
+                "text": "Don't turn webSecurity off (keep the default of true). If you need to work around CORS during development, use a dedicated mechanism for that instead.\n\n// vulnerable\nnew BrowserWindow({ webPreferences: { webSecurity: false } });\n\n// fixed\nnew BrowserWindow({ webPreferences: { /* keep webSecurity at its default (true) */ } });"
               },
               "defaultConfiguration": {
                 "level": "error"
@@ -92,10 +92,10 @@
                 "text": "BrowserWindow webPreferences.allowRunningInsecureContent"
               },
               "fullDescription": {
-                "text": "allowRunningInsecureContent: true는 https 페이지가 http로 된 스크립트 등 혼합(mixed) 콘텐츠를 실행하도록 허용합니다. 중간자 공격자가 http 리소스를 바꿔치기해 페이지에서 임의 코드를 실행할 수 있습니다."
+                "text": "allowRunningInsecureContent: true lets an https page run mixed content, such as scripts served over http. A man-in-the-middle attacker can swap out that http resource to run arbitrary code on the page."
               },
               "help": {
-                "text": "allowRunningInsecureContent를 켜지 마세요(기본값 false 유지). 모든 리소스를 https로 제공하세요.\n\n// 취약\nnew BrowserWindow({ webPreferences: { allowRunningInsecureContent: true } });\n\n// 수정\nnew BrowserWindow({ webPreferences: { /* allowRunningInsecureContent 기본값 false 유지 */ } });"
+                "text": "Don't turn allowRunningInsecureContent on (keep the default of false). Serve every resource over https.\n\n// vulnerable\nnew BrowserWindow({ webPreferences: { allowRunningInsecureContent: true } });\n\n// fixed\nnew BrowserWindow({ webPreferences: { /* keep allowRunningInsecureContent at its default (false) */ } });"
               },
               "defaultConfiguration": {
                 "level": "warning"
@@ -108,13 +108,32 @@
               "id": "EA006",
               "name": "EA006",
               "shortDescription": {
-                "text": "창 간 webPreferences 불일치 (안전한 창과 위험한 창 혼재)"
+                "text": "Inconsistent webPreferences across windows (a safe window alongside an unsafe one)"
               },
               "fullDescription": {
-                "text": "같은 프로젝트 안에서 어떤 창은 안전하게(contextIsolation on / nodeIntegration off) 설정됐는데 다른 창은 위험하게 설정돼 있습니다. 보통 메인 창만 신경 쓰고 자식 창(예: open-win 류)의 webPreferences를 빠뜨린 실수로, 공격자는 방어가 약한 창을 노립니다. dnsChanger의 실제 취약 패턴이 이것이었습니다."
+                "text": "One window in this project is configured safely (contextIsolation on / nodeIntegration off) while another is configured dangerously. This usually happens when a team hardens the main window but forgets a child window's (e.g. an \"open-win\"-style) webPreferences — and an attacker goes after whichever window has the weaker defenses. This was the actual vulnerable pattern in dnsChanger."
               },
               "help": {
-                "text": "모든 BrowserWindow 생성 지점에 동일한 안전 설정을 적용하세요. 공용 팩토리로 webPreferences를 한 곳에서 관리하면 창마다 빠뜨리는 실수를 막을 수 있습니다.\n\nfunction createSecureWindow(opts) {\n  return new BrowserWindow({\n    ...opts,\n    webPreferences: {\n      nodeIntegration: false,\n      contextIsolation: true,\n      preload: path.join(__dirname, 'preload.js'),\n      ...opts.webPreferences,\n    },\n  });\n}"
+                "text": "Apply the same safe settings everywhere you create a BrowserWindow. Managing webPreferences through one shared factory prevents any single window from being missed.\n\nfunction createSecureWindow(opts) {\n  return new BrowserWindow({\n    ...opts,\n    webPreferences: {\n      nodeIntegration: false,\n      contextIsolation: true,\n      preload: path.join(__dirname, 'preload.js'),\n      ...opts.webPreferences,\n    },\n  });\n}"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "security-severity": "7.0"
+              }
+            },
+            {
+              "id": "EA007",
+              "name": "EA007",
+              "shortDescription": {
+                "text": "BrowserWindow webPreferences.enableRemoteModule"
+              },
+              "fullDescription": {
+                "text": "enableRemoteModule: true lets the renderer synchronously call main-process objects and modules (app, BrowserWindow, fs, etc.) directly through the remote module. It's not as severe as nodeIntegration, but it's still a channel that hands over substantial privileges once the renderer is compromised, and it's an easy target for exploitation via prototype pollution and similar techniques."
+              },
+              "help": {
+                "text": "Turn enableRemoteModule off (remove it), and expose only what you need explicitly through preload + contextBridge + ipcRenderer.\n\n// preload.js\ncontextBridge.exposeInMainWorld('api', {\n  getPath: () => ipcRenderer.invoke('get-path'),\n});\n// main process\nipcMain.handle('get-path', () => app.getPath('userData'));"
               },
               "defaultConfiguration": {
                 "level": "error"
@@ -127,13 +146,13 @@
               "id": "EA010",
               "name": "EA010",
               "shortDescription": {
-                "text": "Content-Security-Policy 설정이 없음 (JS/TS·HTML <meta> 모두)"
+                "text": "No Content-Security-Policy configuration (checked both JS/TS and HTML <meta>)"
               },
               "fullDescription": {
-                "text": "프로젝트의 JS/TS 코드와 HTML <meta>를 모두 살폈지만 Content-Security-Policy 설정을 찾지 못했습니다. CSP가 없으면 렌더러가 로드한 콘텐츠에서 인라인 스크립트·원격 스크립트 실행을 막을 방어선이 사라져 XSS의 피해가 그대로 확대됩니다. (한계: <meta> CSP는 얕은 정규식으로만 봅니다. 동적으로 조립하거나 비표준 방식으로 설정한 CSP는 놓칠 수 있어 heuristic으로 보고합니다.)"
+                "text": "This project's JS/TS code and HTML <meta> were both checked, but no Content-Security-Policy configuration was found. Without a CSP, there's no defense left against inline or remote script execution in whatever content the renderer loads, so the impact of any XSS is unconstrained. (Limit: <meta> CSP is only read via a shallow regex. A CSP assembled dynamically, or set through a non-standard mechanism, can be missed — reported as heuristic for that reason.)"
               },
               "help": {
-                "text": "메인 프로세스에서 응답 헤더로 CSP를 설정하거나, 렌더러 HTML에 <meta>로 설정하세요.\n\nsession.defaultSession.webRequest.onHeadersReceived((details, callback) => {\n  callback({\n    responseHeaders: {\n      ...details.responseHeaders,\n      'Content-Security-Policy': [\"default-src 'self'\"],\n    },\n  });\n});"
+                "text": "Set a CSP via a response header in the main process, or via a <meta> tag in the renderer's HTML.\n\nsession.defaultSession.webRequest.onHeadersReceived((details, callback) => {\n  callback({\n    responseHeaders: {\n      ...details.responseHeaders,\n      'Content-Security-Policy': [\"default-src 'self'\"],\n    },\n  });\n});"
               },
               "defaultConfiguration": {
                 "level": "error"
@@ -149,10 +168,10 @@
                 "text": "CSP 'unsafe-inline' / 'unsafe-eval'"
               },
               "fullDescription": {
-                "text": "CSP에 'unsafe-inline' 또는 'unsafe-eval'이 있으면 인라인 스크립트/스타일이나 eval 계열 실행이 허용됩니다. 스크립트 실행 디렉티브(script-src/default-src)의 unsafe-inline·모든 unsafe-eval은 XSS→코드실행 경로라 high로, 그 외 디렉티브(style-src 등)의 unsafe-inline은 공격 표면이 제한적이라 medium으로 보고합니다."
+                "text": "'unsafe-inline' or 'unsafe-eval' in a CSP allows inline script/style or eval-family execution. unsafe-inline in a script-execution directive (script-src/default-src), and unsafe-eval anywhere, are an XSS-to-code-execution path and are reported at high; unsafe-inline in other directives (style-src, etc.) has a more limited attack surface and is reported at medium."
               },
               "help": {
-                "text": "'unsafe-inline'/'unsafe-eval'을 제거하고, 필요한 인라인은 nonce나 hash로 개별 허용하세요.\n\n// 취약\n\"script-src 'self' 'unsafe-inline' 'unsafe-eval'\"\n\n// 수정\n\"script-src 'self' 'nonce-<요청마다 생성한 값>'\""
+                "text": "Remove 'unsafe-inline'/'unsafe-eval', and allow specific inline content individually via a nonce or hash instead.\n\n// vulnerable\n\"script-src 'self' 'unsafe-inline' 'unsafe-eval'\"\n\n// fixed\n\"script-src 'self' 'nonce-<generated-per-request>'\""
               },
               "defaultConfiguration": {
                 "level": "error"
@@ -165,13 +184,13 @@
               "id": "EA012",
               "name": "EA012",
               "shortDescription": {
-                "text": "CSP 소스가 와일드카드 `*` (모든 오리진 허용)"
+                "text": "CSP source is a wildcard `*` (allows every origin)"
               },
               "fullDescription": {
-                "text": "CSP 디렉티브의 소스가 와일드카드 `*` 하나면 모든 오리진을 허용하는 것과 같아 CSP가 사실상 없는 것과 다르지 않습니다. 임의의 원격 스크립트/리소스가 로드될 수 있습니다."
+                "text": "A CSP directive whose source is a bare wildcard `*` allows every origin — no different in practice from having no CSP at all. Arbitrary remote scripts or resources can be loaded."
               },
               "help": {
-                "text": "`*` 대신 실제로 필요한 오리진만 명시하세요. 서브도메인이 필요하면 `*.example.com`처럼 도메인을 고정하세요.\n\n// 취약\n\"default-src *\"\n\n// 수정\n\"default-src 'self' https://api.example.com\""
+                "text": "List only the origins you actually need instead of `*`. If you need subdomains, pin the domain like `*.example.com`.\n\n// vulnerable\n\"default-src *\"\n\n// fixed\n\"default-src 'self' https://api.example.com\""
               },
               "defaultConfiguration": {
                 "level": "warning"
@@ -184,13 +203,13 @@
               "id": "EA013",
               "name": "EA013",
               "shortDescription": {
-                "text": "CSP에 Cordova 잔재(`gap:`) 시그니처"
+                "text": "CSP has a Cordova leftover (`gap:`) signature"
               },
               "fullDescription": {
-                "text": "CSP에 Cordova/하이브리드 앱에서 쓰이는 `gap:` 스킴이 남아 있습니다. 위험이라기보다, 다른 프로젝트의 CSP를 그대로 붙여넣었을 가능성을 알리는 신호입니다 — 이 앱에 실제로 필요한 값인지 점검하세요."
+                "text": "The CSP still contains the `gap:` scheme used by Cordova/hybrid apps. This is less a vulnerability than a sign that a CSP was pasted in from another project — check whether this app actually needs it."
               },
               "help": {
-                "text": "Electron 앱에 필요 없는 Cordova 잔재(`gap:` 등)를 CSP에서 제거하고, 이 앱에 맞는 소스만 남기세요."
+                "text": "Remove Cordova leftovers (`gap:` and similar) that an Electron app doesn't need, and keep only the sources this app actually requires."
               },
               "defaultConfiguration": {
                 "level": "note"
@@ -203,13 +222,13 @@
               "id": "EA020",
               "name": "EA020",
               "shortDescription": {
-                "text": "child_process exec/execSync (또는 spawn shell:true)에 보간·연결된 명령 문자열"
+                "text": "Interpolated/concatenated command string in child_process exec/execSync (or spawn with shell:true)"
               },
               "fullDescription": {
-                "text": "셸 명령 문자열에 외부 영향을 받을 수 있는 값을 템플릿 보간이나 문자열 연결로 직접 끼워 넣으면, 공격자가 세미콜론·백틱 등 셸 메타문자를 주입해 의도하지 않은 명령을 함께 실행시킬 수 있습니다(명령 주입)."
+                "text": "Interpolating or concatenating an externally-influenceable value directly into a shell command string lets an attacker inject shell metacharacters (semicolons, backticks, etc.) to run an unintended command alongside the intended one (command injection)."
               },
               "help": {
-                "text": "exec/execSync 대신 execFile(또는 shell:false spawn)에 인자를 배열로 넘겨, 값이 셸 파싱을 거치지 않게 하세요.\n\n// 취약\nconst { exec } = require('child_process');\nexec(`kill ${pid}`);\n\n// 수정 — 인자를 배열로 분리, 셸을 거치지 않음\nconst { execFile } = require('child_process');\nexecFile('kill', [String(pid)]);"
+                "text": "Pass arguments as an array to execFile (or spawn with shell:false) instead of exec/execSync, so the value never goes through shell parsing.\n\n// vulnerable\nconst { exec } = require('child_process');\nexec(`kill ${pid}`);\n\n// fixed — arguments split into an array, no shell involved\nconst { execFile } = require('child_process');\nexecFile('kill', [String(pid)]);"
               },
               "defaultConfiguration": {
                 "level": "error"
@@ -222,13 +241,13 @@
               "id": "EA021",
               "name": "EA021",
               "shortDescription": {
-                "text": "sudo-prompt류 권한상승 exec에 보간·연결된 명령 문자열"
+                "text": "Interpolated/concatenated command string in a sudo-prompt-style privilege-escalation exec"
               },
               "fullDescription": {
-                "text": "명령 주입 취약점이 sudo-prompt류 권한상승 래퍼와 결합되면, 주입된 명령이 사용자 승인 절차를 거쳐 그대로 관리자 권한으로 실행됩니다. 렌더러나 네트워크에서 흘러온 값이 여기까지 도달하면 시스템 전체가 장악됩니다."
+                "text": "When a command-injection vulnerability is combined with a sudo-prompt-style privilege-escalation wrapper, the injected command runs with full administrator privileges once the user approves the prompt. If a value originating from the renderer or the network reaches this point, the entire system is compromised."
               },
               "help": {
-                "text": "권한상승이 필요한 명령은 고정된 화이트리스트만 실행하고, 인자는 검증 후 값만 전달하세요.\nsudo-prompt류는 내부적으로 셸을 거치므로 명령 문자열에 외부 입력을 절대 보간하지 마세요.\n\n// 취약\nsudo.exec(`some-tool --target=${url}`, options, callback);\n\n// 수정 — 화이트리스트에 있는 고정 명령 + 검증된 인자만\nconst ALLOWED_TARGETS = new Set(['a', 'b']);\nif (!ALLOWED_TARGETS.has(target)) throw new Error('invalid target');\nsudo.exec(`some-tool --target=${target}`, options, callback);"
+                "text": "Run only a fixed whitelist of commands where privilege escalation is needed, and pass arguments only after validating them.\nsudo-prompt-style wrappers go through a shell internally, so never interpolate external input into the command string.\n\n// vulnerable\nsudo.exec(`some-tool --target=${url}`, options, callback);\n\n// fixed — a fixed whitelisted command + validated arguments only\nconst ALLOWED_TARGETS = new Set(['a', 'b']);\nif (!ALLOWED_TARGETS.has(target)) throw new Error('invalid target');\nsudo.exec(`some-tool --target=${target}`, options, callback);"
               },
               "defaultConfiguration": {
                 "level": "error"
@@ -241,13 +260,13 @@
               "id": "EA022",
               "name": "EA022",
               "shortDescription": {
-                "text": "child_process exec류에 전달된, 정적으로 안전을 증명할 수 없는 변수"
+                "text": "A variable passed to a child_process exec-family call that can't be statically proven safe"
               },
               "fullDescription": {
-                "text": "셸 명령에 전달된 값이 정적으로 안전하다고 증명되지 않는 변수입니다. 이 값이 사용자 입력이나 네트워크 응답 등 외부에서 온 것이라면 명령 주입으로 이어질 수 있습니다. 정적 분석만으로는 오염 여부를 확정할 수 없어 휴리스틱으로 보고합니다 — 실제 취약 여부는 값의 출처를 직접 확인하세요."
+                "text": "The value passed to a shell command is a variable that can't be statically proven safe. If it originates from user input, a network response, or another external source, it could lead to command injection. Static analysis alone can't confirm whether it's tainted, so this is reported as a heuristic — check the value's origin directly to determine whether it's actually exploitable."
               },
               "help": {
-                "text": "이 변수가 셸에 들어가기 전에 반드시 검증하거나, execFile + 인자 배열로 바꿔 셸 파싱 자체를 피하세요.\n\n// 검증 없이 그대로 전달됨\nexec(command);\n\n// 수정 — 문자열 조립 없이 인자 배열로 전달 (셸을 거치지 않음)\nconst { execFile } = require('child_process');\nexecFile(command, args, callback);"
+                "text": "Validate this variable before it reaches the shell, or switch to execFile + an argument array to avoid shell parsing entirely.\n\n// passed through with no validation\nexec(command);\n\n// fixed — passed as an argument array, no string assembly, no shell involved\nconst { execFile } = require('child_process');\nexecFile(command, args, callback);"
               },
               "defaultConfiguration": {
                 "level": "error"
@@ -260,13 +279,13 @@
               "id": "EA040",
               "name": "EA040",
               "shortDescription": {
-                "text": "shell.openExternal(<검증되지 않은/위험한 스킴 URL>)"
+                "text": "shell.openExternal(<unvalidated URL / unsafe scheme>)"
               },
               "fullDescription": {
-                "text": "shell.openExternal에 정적으로 확정할 수 없는 값이 전달됩니다. 스킴 화이트리스트 없이 임의 URL이 열리면 file://(로컬 파일 접근)이나 javascript:/data:(코드 실행) 같은 위험한 스킴이 외부 입력으로 주입될 수 있습니다."
+                "text": "A value that can't be statically determined is passed to shell.openExternal. Without a scheme allowlist, an arbitrary URL could be opened, letting a dangerous scheme — file: (local file access) or javascript:/data: (code execution) — be injected via external input."
               },
               "help": {
-                "text": "열기 전에 스킴을 https/http(필요 시 mailto)로 화이트리스트 검증하세요.\n\n// 취약\nshell.openExternal(url);\n\n// 수정 — 안전한 스킴만 통과\nfunction openSafely(url) {\n  const { protocol } = new URL(url);\n  if (protocol === 'https:' || protocol === 'http:') {\n    shell.openExternal(url);\n  }\n}"
+                "text": "Allowlist the scheme to https/http (and mailto if needed) before opening.\n\n// vulnerable\nshell.openExternal(url);\n\n// fixed — only a safe scheme gets through\nfunction openSafely(url) {\n  const { protocol } = new URL(url);\n  if (protocol === 'https:' || protocol === 'http:') {\n    shell.openExternal(url);\n  }\n}"
               },
               "defaultConfiguration": {
                 "level": "error"
@@ -279,13 +298,13 @@
               "id": "EA041",
               "name": "EA041",
               "shortDescription": {
-                "text": "BrowserWindow가 있으나 setWindowOpenHandler가 프로젝트 어디에도 없음"
+                "text": "BrowserWindow exists but setWindowOpenHandler is missing anywhere in the project"
               },
               "fullDescription": {
-                "text": "창을 안전하게 잠그지 않은 프로젝트에 setWindowOpenHandler가 전혀 없습니다. 새 창 생성 요청을 통제하는 지점이 없으면 window.open 등으로 임의 URL이 열릴 수 있습니다. (정적으로 실제 창 열기 경로 유무까지는 확인할 수 없어 휴리스틱으로 보고합니다.)"
+                "text": "A project whose windows aren't otherwise locked down has no setWindowOpenHandler at all. With nothing controlling new-window requests, an arbitrary URL could be opened via window.open and similar APIs. (Reported as heuristic since we can't statically confirm whether a real window-opening code path even exists.)"
               },
               "help": {
-                "text": "모든 창에 setWindowOpenHandler를 걸고, 허용할 URL을 명시적으로 검증한 뒤에만 열도록 하세요.\n\nwin.webContents.setWindowOpenHandler(({ url }) => {\n  if (isAllowed(url)) {\n    return { action: 'allow' };\n  }\n  return { action: 'deny' };\n});"
+                "text": "Attach setWindowOpenHandler to every window, and only allow a URL to open after explicitly validating it.\n\nwin.webContents.setWindowOpenHandler(({ url }) => {\n  if (isAllowed(url)) {\n    return { action: 'allow' };\n  }\n  return { action: 'deny' };\n});"
               },
               "defaultConfiguration": {
                 "level": "warning"
@@ -298,13 +317,13 @@
               "id": "EA042",
               "name": "EA042",
               "shortDescription": {
-                "text": "loadURL(<원격 URL 또는 http 비-https>)"
+                "text": "loadURL(<remote URL or non-https http>)"
               },
               "fullDescription": {
-                "text": "원격 콘텐츠를 창에 로드하면 앱이 통제할 수 없는 코드를 실행하게 됩니다."
+                "text": "Loading remote content into a window means running code the app doesn't control."
               },
               "help": {
-                "text": "가능하면 로컬 콘텐츠는 loadFile로 로드하고, 원격을 로드해야 한다면 https로 고정된 신뢰 도메인만 사용하세요.\n\n// 취약: 원격/비-https 콘텐츠 로드\nwin.loadURL('http://example.com/app');\n\n// 수정: 로컬 파일 로드\nwin.loadFile('index.html');"
+                "text": "Load local content with loadFile where possible; if you must load something remote, use only a fixed, trusted https domain.\n\n// vulnerable: loads remote/non-https content\nwin.loadURL('http://example.com/app');\n\n// fixed: loads a local file\nwin.loadFile('index.html');"
               },
               "defaultConfiguration": {
                 "level": "warning"
@@ -317,13 +336,13 @@
               "id": "EA050",
               "name": "EA050",
               "shortDescription": {
-                "text": "신뢰 불가 역직렬화/외부 입력이 검증 없이 위험 싱크로 직행"
+                "text": "Untrusted deserialized/external input reaches a dangerous sink without validation"
               },
               "fullDescription": {
-                "text": "JSON.parse 등으로 역직렬화된, 정적으로 신뢰를 보장할 수 없는 값(원격 응답일 수 있음)이 검증 없이 셸 명령에 도달합니다. 이 값이 공격자 통제 하에 있으면 명령 주입으로 이어집니다."
+                "text": "A value deserialized via JSON.parse or similar — one that can't be statically guaranteed trustworthy (it could be a remote response) — reaches a shell command unvalidated. If this value is attacker-controlled, it leads to command injection."
               },
               "help": {
-                "text": "싱크에 넘기기 전에 값을 검증하거나 화이트리스트로 제한하고, 셸 대신 execFile + 인자 배열을 쓰세요.\n\nconst ALLOWED = new Set(['a', 'b']);\nif (!ALLOWED.has(info.action)) throw new Error('invalid');\nexecFile('tool', ['--action', info.action]);"
+                "text": "Validate or allowlist the value before it reaches the sink, and use execFile + an argument array instead of a shell.\n\nconst ALLOWED = new Set(['a', 'b']);\nif (!ALLOWED.has(info.action)) throw new Error('invalid');\nexecFile('tool', ['--action', info.action]);"
               },
               "defaultConfiguration": {
                 "level": "warning"
@@ -336,13 +355,13 @@
               "id": "EA060",
               "name": "EA060",
               "shortDescription": {
-                "text": "애널리틱스/텔레메트리 SDK 사용 (프라이버시 고지 목적, 취약점 아님)"
+                "text": "Analytics/telemetry SDK in use (a privacy notice, not a vulnerability)"
               },
               "fullDescription": {
-                "text": "이 SDK는 사용자 행동/기기 정보를 외부 서버로 전송하는 애널리틱스·텔레메트리 용도입니다. 보안 취약점은 아니지만, 어떤 데이터가 수집·전송되는지 사용자에게 고지하고 옵트아웃 수단을 제공해야 프라이버시 규정(GDPR 등)에 부합합니다."
+                "text": "This SDK is an analytics/telemetry tool that sends user behavior/device information to an external server. It's not a security vulnerability, but complying with privacy regulations (GDPR, etc.) requires disclosing what data is collected and sent, and providing a way to opt out."
               },
               "help": {
-                "text": "수집 항목을 개인정보 처리방침에 명시하고, 최초 실행 시 동의(opt-in) 또는 옵트아웃을 제공하세요.\n민감 정보(파일 경로, 입력 내용 등)가 이벤트에 실려 나가지 않는지 점검하세요."
+                "text": "Document what's collected in your privacy policy, and offer opt-in consent (or an opt-out) on first run.\nCheck that sensitive information (file paths, input content, etc.) isn't riding along in these events."
               },
               "defaultConfiguration": {
                 "level": "note"
@@ -355,13 +374,13 @@
               "id": "EA061",
               "name": "EA061",
               "shortDescription": {
-                "text": "electron-builder 코드 서명 설정 부재"
+                "text": "electron-builder has no code-signing configuration"
               },
               "fullDescription": {
-                "text": "코드 서명 설정이 없으면 배포 산출물이 서명되지 않아, 사용자 OS가 \"확인되지 않은 개발자\" 경고를 띄우고 자동 업데이트 무결성 검증도 약해집니다. 서명되지 않은 빌드는 중간자 변조를 탐지하기 어렵습니다."
+                "text": "Without a code-signing configuration, release builds ship unsigned — the user's OS shows an \"unidentified developer\" warning, and auto-update integrity verification is weaker too. An unsigned build is harder to detect tampering on in transit."
               },
               "help": {
-                "text": "electron-builder 설정에 플랫폼별 코드 서명을 추가하세요.\n\n// package.json \"build\" 또는 electron-builder.json\n\"mac\": { \"identity\": \"Developer ID Application: Your Name (TEAMID)\" },\n\"win\": { \"certificateSubjectName\": \"Your Company\" }"
+                "text": "Add platform code signing to your electron-builder configuration.\n\n// package.json \"build\", or electron-builder.json\n\"mac\": { \"identity\": \"Developer ID Application: Your Name (TEAMID)\" },\n\"win\": { \"certificateSubjectName\": \"Your Company\" }"
               },
               "defaultConfiguration": {
                 "level": "note"
@@ -374,13 +393,13 @@
               "id": "EA062",
               "name": "EA062",
               "shortDescription": {
-                "text": "package.json의 electron 버전이 최신 대비 크게 뒤처짐"
+                "text": "The electron version in package.json is far behind the latest"
               },
               "fullDescription": {
-                "text": "Electron은 대략 최신 3개 메이저 버전만 보안 패치를 제공합니다. 그보다 크게 뒤처진 버전은 Chromium·Node.js의 알려진 취약점이 수정되지 않은 채 남아 있을 수 있습니다. (기준 최신 버전은 이 도구에 하드코딩되어 있어 실제보다 오래됐을 수 있으니, 정확한 최신 버전은 직접 확인하세요.)"
+                "text": "Electron generally only ships security patches for roughly the latest 3 majors. A version significantly further behind than that may still carry known, unpatched Chromium/Node.js vulnerabilities. (The baseline 'latest' version is hardcoded in this tool and can lag behind the real latest, so verify the actual current version yourself.)"
               },
               "help": {
-                "text": "electron 의존성을 최신 안정 메이저로 올리고, 릴리스 노트의 호환성 변경사항을 확인하세요.\n\n// package.json\n\"devDependencies\": {\n  \"electron\": \"^<latest-major>.0.0\"\n}"
+                "text": "Upgrade the electron dependency to the latest stable major, and check the release notes for compatibility changes.\n\n// package.json\n\"devDependencies\": {\n  \"electron\": \"^<latest-major>.0.0\"\n}"
               },
               "defaultConfiguration": {
                 "level": "note"
@@ -467,7 +486,7 @@
         },
         {
           "ruleId": "EA021",
-          "ruleIndex": 11,
+          "ruleIndex": 12,
           "level": "error",
           "message": {
             "text": "sudo.exec( `netsh interface ip set dns \"${networkInterface}\" dhcp`, { name: 'DnsChanger', }, (error) => { if (error) { reject(error) return } resolve() }, )"
@@ -491,10 +510,10 @@
         },
         {
           "ruleId": "EA011",
-          "ruleIndex": 7,
+          "ruleIndex": 8,
           "level": "error",
           "message": {
-            "text": "script-src에 'unsafe-eval', 'unsafe-inline'"
+            "text": "script-src has 'unsafe-eval', 'unsafe-inline'"
           },
           "locations": [
             {
@@ -515,10 +534,10 @@
         },
         {
           "ruleId": "EA011",
-          "ruleIndex": 7,
+          "ruleIndex": 8,
           "level": "warning",
           "message": {
-            "text": "style-src에 'unsafe-inline'"
+            "text": "style-src has 'unsafe-inline'"
           },
           "locations": [
             {
@@ -539,10 +558,10 @@
         },
         {
           "ruleId": "EA011",
-          "ruleIndex": 7,
+          "ruleIndex": 8,
           "level": "warning",
           "message": {
-            "text": "img-src에 'unsafe-inline'"
+            "text": "img-src has 'unsafe-inline'"
           },
           "locations": [
             {
@@ -563,10 +582,10 @@
         },
         {
           "ruleId": "EA011",
-          "ruleIndex": 7,
+          "ruleIndex": 8,
           "level": "warning",
           "message": {
-            "text": "connect-src에 'unsafe-inline'"
+            "text": "connect-src has 'unsafe-inline'"
           },
           "locations": [
             {
@@ -587,10 +606,10 @@
         },
         {
           "ruleId": "EA012",
-          "ruleIndex": 8,
+          "ruleIndex": 9,
           "level": "warning",
           "message": {
-            "text": "default-src에 와일드카드 `*`"
+            "text": "default-src has a wildcard `*`"
           },
           "locations": [
             {
@@ -611,10 +630,10 @@
         },
         {
           "ruleId": "EA012",
-          "ruleIndex": 8,
+          "ruleIndex": 9,
           "level": "warning",
           "message": {
-            "text": "style-src에 와일드카드 `*`"
+            "text": "style-src has a wildcard `*`"
           },
           "locations": [
             {
@@ -635,10 +654,10 @@
         },
         {
           "ruleId": "EA012",
-          "ruleIndex": 8,
+          "ruleIndex": 9,
           "level": "warning",
           "message": {
-            "text": "script-src에 와일드카드 `*`"
+            "text": "script-src has a wildcard `*`"
           },
           "locations": [
             {
@@ -659,10 +678,10 @@
         },
         {
           "ruleId": "EA012",
-          "ruleIndex": 8,
+          "ruleIndex": 9,
           "level": "warning",
           "message": {
-            "text": "object-src에 와일드카드 `*`"
+            "text": "object-src has a wildcard `*`"
           },
           "locations": [
             {
@@ -683,10 +702,10 @@
         },
         {
           "ruleId": "EA012",
-          "ruleIndex": 8,
+          "ruleIndex": 9,
           "level": "warning",
           "message": {
-            "text": "img-src에 와일드카드 `*`"
+            "text": "img-src has a wildcard `*`"
           },
           "locations": [
             {
@@ -707,10 +726,10 @@
         },
         {
           "ruleId": "EA012",
-          "ruleIndex": 8,
+          "ruleIndex": 9,
           "level": "warning",
           "message": {
-            "text": "connect-src에 와일드카드 `*`"
+            "text": "connect-src has a wildcard `*`"
           },
           "locations": [
             {
@@ -731,10 +750,10 @@
         },
         {
           "ruleId": "EA012",
-          "ruleIndex": 8,
+          "ruleIndex": 9,
           "level": "warning",
           "message": {
-            "text": "frame-src에 와일드카드 `*`"
+            "text": "frame-src has a wildcard `*`"
           },
           "locations": [
             {
@@ -755,10 +774,10 @@
         },
         {
           "ruleId": "EA040",
-          "ruleIndex": 13,
+          "ruleIndex": 14,
           "level": "error",
           "message": {
-            "text": "[heuristic] shell.openExternal(<변수/표현식>)"
+            "text": "[heuristic] shell.openExternal(<variable/expression>)"
           },
           "locations": [
             {
@@ -779,10 +798,10 @@
         },
         {
           "ruleId": "EA040",
-          "ruleIndex": 13,
+          "ruleIndex": 14,
           "level": "error",
           "message": {
-            "text": "[heuristic] shell.openExternal(<변수/표현식>)"
+            "text": "[heuristic] shell.openExternal(<variable/expression>)"
           },
           "locations": [
             {
@@ -803,10 +822,10 @@
         },
         {
           "ruleId": "EA050",
-          "ruleIndex": 16,
+          "ruleIndex": 17,
           "level": "warning",
           "message": {
-            "text": "[heuristic] 역직렬화된 신뢰 불가 데이터(원격일 수 있음)가 검증 없이 외부 URL 열기/로드로 흘러감"
+            "text": "[heuristic] Deserialized untrusted data (possibly remote) reaches an external URL open/load unvalidated"
           },
           "locations": [
             {
@@ -827,7 +846,7 @@
         },
         {
           "ruleId": "EA022",
-          "ruleIndex": 12,
+          "ruleIndex": 13,
           "level": "error",
           "message": {
             "text": "[heuristic] sudo.exec(cmd, { name: 'dnsChanger' }, (error, stdout) => { if (error) { reject(error) return } resolve(stdout) })"
@@ -851,10 +870,10 @@
         },
         {
           "ruleId": "EA050",
-          "ruleIndex": 16,
+          "ruleIndex": 17,
           "level": "warning",
           "message": {
-            "text": "[heuristic] 역직렬화된 신뢰 불가 데이터(원격일 수 있음)가 검증 없이 외부 URL 열기/로드로 흘러감"
+            "text": "[heuristic] Deserialized untrusted data (possibly remote) reaches an external URL open/load unvalidated"
           },
           "locations": [
             {
@@ -875,10 +894,10 @@
         },
         {
           "ruleId": "EA062",
-          "ruleIndex": 19,
+          "ruleIndex": 20,
           "level": "note",
           "message": {
-            "text": "[heuristic] electron 33.x (기준 최신 40.x 대비 7 메이저 뒤처짐)"
+            "text": "[heuristic] electron 33.x (7 majors behind our baseline of 40.x)"
           },
           "locations": [
             {
@@ -899,10 +918,10 @@
         },
         {
           "ruleId": "EA060",
-          "ruleIndex": 17,
+          "ruleIndex": 18,
           "level": "note",
           "message": {
-            "text": "[heuristic] react-ga4 (애널리틱스/텔레메트리 SDK)"
+            "text": "[heuristic] react-ga4 (analytics/telemetry SDK)"
           },
           "locations": [
             {

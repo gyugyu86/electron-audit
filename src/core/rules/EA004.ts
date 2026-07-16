@@ -2,16 +2,16 @@ import type { Finding, NodeRule, NodeRuleContext } from '../types.js';
 import { getWindowCallSites } from './shared/windowCallSites.js';
 
 const WHY_DANGEROUS =
-  'webSecurity: false는 동일 출처 정책(SOP)을 끄고 원격 리소스를 무분별하게 로드/실행하도록 허용합니다. XSS와 ' +
-  '데이터 유출 방어가 통째로 사라집니다.';
+  'webSecurity: false disables the same-origin policy (SOP) and lets the page load and run remote resources ' +
+  'indiscriminately. It removes XSS and data-exfiltration protections wholesale.';
 
-const RECOMMENDATION = `webSecurity를 끄지 마세요(기본값 true 유지). 개발 중 CORS 회피가 필요하면 그 목적에 맞는 별도 수단을 쓰세요.
+const RECOMMENDATION = `Don't turn webSecurity off (keep the default of true). If you need to work around CORS during development, use a dedicated mechanism for that instead.
 
-// 취약
+// vulnerable
 new BrowserWindow({ webPreferences: { webSecurity: false } });
 
-// 수정
-new BrowserWindow({ webPreferences: { /* webSecurity 기본값 true 유지 */ } });`;
+// fixed
+new BrowserWindow({ webPreferences: { /* keep webSecurity at its default (true) */ } });`;
 
 export const EA004: NodeRule = {
   id: 'EA004',
@@ -36,8 +36,8 @@ export const EA004: NodeRule = {
         findings.push({
           ...base,
           confidence: 'heuristic',
-          target: 'webSecurity: <변수/표현식>',
-          whyDangerous: `${WHY_DANGEROUS} (값이 변수/표현식이라 실행 시점에 꺼질 수 있습니다.)`,
+          target: 'webSecurity: <variable/expression>',
+          whyDangerous: `${WHY_DANGEROUS} (The value is a variable/expression, so it could be turned off at runtime.)`,
         });
       }
     }

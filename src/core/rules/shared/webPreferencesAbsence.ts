@@ -16,11 +16,11 @@ export function classifyMissingSecureDefault(major: number | undefined, safeSinc
   if (major !== undefined) {
     return {
       report: true,
-      reason: `대상 Electron ${major}에서는 이 옵션의 기본값이 안전하지 않습니다(안전 기본값은 ${safeSinceMajor}+부터).`,
+      reason: `On the target's Electron ${major}, this option's default is not safe (the safe default starts at ${safeSinceMajor}+).`,
     };
   }
   return {
     report: true,
-    reason: `프로젝트의 Electron 버전을 확인할 수 없습니다 — 구버전(${safeSinceMajor} 미만)이면 기본값이 위험합니다.`,
+    reason: `Couldn't determine the project's Electron version — on an older version (below ${safeSinceMajor}), the default is unsafe.`,
   };
 }

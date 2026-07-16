@@ -28,32 +28,33 @@ interface SinkMessage {
 // fix differs by) is spelled out per bucket.
 const MESSAGES: Record<SinkBucket, SinkMessage> = {
   command: {
-    target: '역직렬화된 신뢰 불가 데이터(원격일 수 있음)가 검증 없이 셸 명령으로 흘러감',
+    target: 'Deserialized untrusted data (possibly remote) reaches a shell command unvalidated',
     whyDangerous:
-      'JSON.parse 등으로 역직렬화된, 정적으로 신뢰를 보장할 수 없는 값(원격 응답일 수 있음)이 검증 없이 셸 명령에 ' +
-      '도달합니다. 이 값이 공격자 통제 하에 있으면 명령 주입으로 이어집니다.',
-    recommendation: `싱크에 넘기기 전에 값을 검증하거나 화이트리스트로 제한하고, 셸 대신 execFile + 인자 배열을 쓰세요.
+      "A value deserialized via JSON.parse or similar — one that can't be statically guaranteed trustworthy " +
+      '(it could be a remote response) — reaches a shell command unvalidated. If this value is attacker-controlled, ' +
+      'it leads to command injection.',
+    recommendation: `Validate or allowlist the value before it reaches the sink, and use execFile + an argument array instead of a shell.
 
 const ALLOWED = new Set(['a', 'b']);
 if (!ALLOWED.has(info.action)) throw new Error('invalid');
 execFile('tool', ['--action', info.action]);`,
   },
   'external-url': {
-    target: '역직렬화된 신뢰 불가 데이터(원격일 수 있음)가 검증 없이 외부 URL 열기/로드로 흘러감',
+    target: 'Deserialized untrusted data (possibly remote) reaches an external URL open/load unvalidated',
     whyDangerous:
-      '역직렬화된, 신뢰를 보장할 수 없는 값이 검증 없이 shell.openExternal / loadURL에 도달합니다. 임의의 스킴' +
-      '(file:/javascript:)이나 오리진이 열릴 수 있습니다.',
-    recommendation: `열기/로드 전에 스킴과 오리진을 화이트리스트로 검증하세요.
+      "A deserialized value that can't be guaranteed trustworthy reaches shell.openExternal / loadURL unvalidated. " +
+      'An arbitrary scheme (file:/javascript:) or origin could be opened.',
+    recommendation: `Allowlist the scheme and origin before opening/loading.
 
 const { protocol, host } = new URL(info.url);
 if (protocol === 'https:' && ALLOWED_HOSTS.has(host)) shell.openExternal(info.url);`,
   },
   'fs-path': {
-    target: '역직렬화된 신뢰 불가 데이터(원격일 수 있음)가 검증 없이 파일 경로로 흘러감',
+    target: 'Deserialized untrusted data (possibly remote) reaches a file path unvalidated',
     whyDangerous:
-      '역직렬화된, 신뢰를 보장할 수 없는 값이 검증 없이 파일 경로로 쓰입니다. 경로 탐색(path traversal)으로 ' +
-      '기준 디렉토리 밖의 파일을 읽거나 덮어쓸 수 있습니다.',
-    recommendation: `경로를 정규화한 뒤 허용된 기준 디렉토리 안에 있는지 확인하고, 벗어나면 거부하세요.
+      "A deserialized value that can't be guaranteed trustworthy is used as a file path unvalidated. Path " +
+      'traversal could let it read or overwrite a file outside the intended base directory.',
+    recommendation: `Normalize the path, confirm it stays inside the allowed base directory, and reject it if it escapes.
 
 const resolved = path.resolve(BASE_DIR, info.path);
 if (!resolved.startsWith(BASE_DIR + path.sep)) throw new Error('path escape');
@@ -65,7 +66,7 @@ export const EA050: NodeRule = {
   id: 'EA050',
   kind: 'node',
   severity: 'medium',
-  target: '신뢰 불가 역직렬화/외부 입력이 검증 없이 위험 싱크로 직행',
+  target: 'Untrusted deserialized/external input reaches a dangerous sink without validation',
   whyDangerous: MESSAGES.command.whyDangerous,
   recommendation: MESSAGES.command.recommendation,
   check(context: NodeRuleContext): Finding[] {

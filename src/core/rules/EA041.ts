@@ -4,14 +4,16 @@ import { getWindowCallSites } from './shared/windowCallSites.js';
 import { isClearlySafeWindow } from './shared/windowSafety.js';
 
 const WHY_UNCONDITIONAL =
-  'setWindowOpenHandler가 모든 창 생성 요청을 무조건 허용(action: "allow")합니다. window.open이나 target=_blank ' +
-  '링크로 임의의 URL이 새 창으로 열릴 수 있어, 신뢰할 수 없는 콘텐츠가 앱 안에서 창을 띄우는 통로가 됩니다.';
+  'setWindowOpenHandler unconditionally allows (action: "allow") every window-creation request. An arbitrary URL ' +
+  'can be opened in a new window via window.open or a target=_blank link, turning it into a channel for untrusted ' +
+  'content to spawn windows inside the app.';
 
 const WHY_ABSENT =
-  '창을 안전하게 잠그지 않은 프로젝트에 setWindowOpenHandler가 전혀 없습니다. 새 창 생성 요청을 통제하는 지점이 ' +
-  '없으면 window.open 등으로 임의 URL이 열릴 수 있습니다. (정적으로 실제 창 열기 경로 유무까지는 확인할 수 없어 휴리스틱으로 보고합니다.)';
+  "A project whose windows aren't otherwise locked down has no setWindowOpenHandler at all. With nothing " +
+  'controlling new-window requests, an arbitrary URL could be opened via window.open and similar APIs. (Reported ' +
+  "as heuristic since we can't statically confirm whether a real window-opening code path even exists.)";
 
-const RECOMMENDATION = `모든 창에 setWindowOpenHandler를 걸고, 허용할 URL을 명시적으로 검증한 뒤에만 열도록 하세요.
+const RECOMMENDATION = `Attach setWindowOpenHandler to every window, and only allow a URL to open after explicitly validating it.
 
 win.webContents.setWindowOpenHandler(({ url }) => {
   if (isAllowed(url)) {
@@ -56,7 +58,7 @@ export const EA041Absence: AggregateRule = {
   id: 'EA041',
   kind: 'aggregate',
   severity: 'medium',
-  target: 'BrowserWindow가 있으나 setWindowOpenHandler가 프로젝트 어디에도 없음',
+  target: 'BrowserWindow exists but setWindowOpenHandler is missing anywhere in the project',
   whyDangerous: WHY_ABSENT,
   recommendation: RECOMMENDATION,
   check(context: AggregateRuleContext): Finding[] {
@@ -82,7 +84,7 @@ export const EA041Absence: AggregateRule = {
         confidence: 'heuristic',
         file: anchor.file,
         line: anchor.line,
-        target: 'setWindowOpenHandler 부재 (안전하게 설정되지 않은 창이 존재)',
+        target: 'setWindowOpenHandler is missing (a window that is not clearly safe exists)',
         whyDangerous: WHY_ABSENT,
         recommendation: RECOMMENDATION,
       },

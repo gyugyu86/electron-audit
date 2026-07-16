@@ -6,10 +6,11 @@ import { classifyMissingSecureDefault } from './shared/webPreferencesAbsence.js'
 const CONTEXT_ISOLATION_SAFE_SINCE = 12;
 
 const WHY_DANGEROUS =
-  'contextIsolation이 꺼져 있으면 preload 스크립트와 렌더러 페이지가 같은 JS 컨텍스트를 공유합니다. 페이지의 ' +
-  '악성 스크립트가 preload가 노출한 객체나 Electron 내부 API를 프로토타입 오염 등으로 탈취해 권한을 확대할 수 있습니다.';
+  'With contextIsolation off, the preload script and the renderer page share the same JS context. A malicious ' +
+  'script on the page can hijack objects the preload exposed, or Electron internals, via prototype pollution and ' +
+  'similar techniques, to escalate its privileges.';
 
-const RECOMMENDATION = `contextIsolation을 켜고(기본값 유지) preload에서는 contextBridge로만 API를 노출하세요.
+const RECOMMENDATION = `Turn contextIsolation on (keep the default) and expose APIs from preload only through contextBridge.
 
 const win = new BrowserWindow({
   webPreferences: {
@@ -38,8 +39,8 @@ export const EA002: NodeRule = {
         findings.push({
           ...base,
           confidence: 'heuristic',
-          target: 'contextIsolation: <변수/표현식>',
-          whyDangerous: `${WHY_DANGEROUS} (값이 변수/표현식이라 실행 시점에 꺼질 수 있습니다.)`,
+          target: 'contextIsolation: <variable/expression>',
+          whyDangerous: `${WHY_DANGEROUS} (The value is a variable/expression, so it could be turned off at runtime.)`,
         });
       } else if (state === 'absent') {
         const verdict = classifyMissingSecureDefault(context.project.electronMajorVersion, CONTEXT_ISOLATION_SAFE_SINCE);
@@ -47,7 +48,7 @@ export const EA002: NodeRule = {
           findings.push({
             ...base,
             confidence: 'heuristic',
-            target: 'contextIsolation 미설정',
+            target: 'contextIsolation not set',
             whyDangerous: `${WHY_DANGEROUS} ${verdict.reason}`,
           });
         }

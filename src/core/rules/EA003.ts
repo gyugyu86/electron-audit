@@ -6,10 +6,11 @@ import { classifyMissingSecureDefault } from './shared/webPreferencesAbsence.js'
 const SANDBOX_SAFE_SINCE = 20;
 
 const WHY_DANGEROUS =
-  'sandbox가 꺼지면 렌더러 프로세스가 OS 샌드박스 밖에서 실행되어, 렌더러가 침해됐을 때 공격자가 Node 및 시스템 ' +
-  '리소스에 훨씬 쉽게 접근합니다. 샌드박스는 렌더러 침해의 피해를 가두는 핵심 방어선입니다.';
+  "With sandbox off, the renderer process runs outside the OS sandbox — if the renderer is compromised, an " +
+  'attacker gets much easier access to Node and system resources. The sandbox is the primary containment for ' +
+  'renderer compromise.';
 
-const RECOMMENDATION = `sandbox를 켜세요(기본값 유지). preload는 sandbox 호환 API만 사용하도록 작성합니다.
+const RECOMMENDATION = `Turn sandbox on (keep the default). Write preload to use only sandbox-compatible APIs.
 
 const win = new BrowserWindow({
   webPreferences: {
@@ -39,8 +40,8 @@ export const EA003: NodeRule = {
         findings.push({
           ...base,
           confidence: 'heuristic',
-          target: 'sandbox: <변수/표현식>',
-          whyDangerous: `${WHY_DANGEROUS} (값이 변수/표현식이라 실행 시점에 꺼질 수 있습니다.)`,
+          target: 'sandbox: <variable/expression>',
+          whyDangerous: `${WHY_DANGEROUS} (The value is a variable/expression, so it could be turned off at runtime.)`,
         });
       } else if (state === 'absent') {
         const verdict = classifyMissingSecureDefault(context.project.electronMajorVersion, SANDBOX_SAFE_SINCE);
@@ -48,7 +49,7 @@ export const EA003: NodeRule = {
           findings.push({
             ...base,
             confidence: 'heuristic',
-            target: 'sandbox 미설정',
+            target: 'sandbox not set',
             whyDangerous: `${WHY_DANGEROUS} ${verdict.reason}`,
           });
         }
