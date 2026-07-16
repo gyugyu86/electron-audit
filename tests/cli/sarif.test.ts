@@ -53,17 +53,25 @@ describe('formatSarifReport', () => {
       locations: Array<{ physicalLocation: { artifactLocation: { uri: string }; region: { startLine: number } } }>;
     }>;
 
-    const critical = results.find((r) => r.ruleId === 'EA001')!;
+    const byRule = (ruleId: string): (typeof results)[number] => {
+      const found = results.find((r) => r.ruleId === ruleId);
+      if (!found) {
+        throw new Error(`no SARIF result for ${ruleId}`);
+      }
+      return found;
+    };
+
+    const critical = byRule('EA001');
     expect(critical.level).toBe('error');
     expect(critical.properties['security-severity']).toBe('9.0');
 
-    const heuristicMedium = results.find((r) => r.ruleId === 'EA050')!;
+    const heuristicMedium = byRule('EA050');
     expect(heuristicMedium.level).toBe('warning');
     expect(heuristicMedium.properties['security-severity']).toBe('3.0'); // 5 - 2
     expect(heuristicMedium.message.text.startsWith('[heuristic]')).toBe(true);
 
     // aggregate finding at line 0 -> clamped to 1; path relativized
-    const info = results.find((r) => r.ruleId === 'EA062')!;
+    const info = byRule('EA062');
     expect(info.level).toBe('note');
     expect(info.locations[0].physicalLocation.region.startLine).toBe(1);
     expect(info.locations[0].physicalLocation.artifactLocation.uri).toBe('package.json');
