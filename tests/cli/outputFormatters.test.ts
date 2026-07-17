@@ -37,11 +37,11 @@ describe('formatJsonReport', () => {
 describe('formatMarkdownReport', () => {
   it('renders severity sections, per-finding why/fix, and marks heuristic findings', () => {
     const md = formatMarkdownReport(FINDINGS, META);
-    expect(md).toContain('# electron-audit 리포트');
+    expect(md).toContain('# electron-audit report');
     expect(md).toContain('## 🔴 Critical (1)');
     expect(md).toContain('## 🟡 Medium (1)');
     expect(md).toContain('### EA001 — tgt');
-    expect(md).toContain('**왜 위험한가:**');
+    expect(md).toContain("**Why it's dangerous:**");
     expect(md).toContain('fix here');
     // heuristic marker present for EA050 only
     expect(md).toContain('### EA050 — tgt `[heuristic]`');
@@ -49,6 +49,6 @@ describe('formatMarkdownReport', () => {
 
   it('reports a clean project explicitly', () => {
     const md = formatMarkdownReport([], META);
-    expect(md).toContain('탐지된 문제가 없습니다');
+    expect(md).toContain('No issues found');
   });
 });

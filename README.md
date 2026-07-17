@@ -74,8 +74,8 @@ Terminal output (on a deliberately-vulnerable sample project):
 ```
 main.js:16
    CRITICAL  EA001  new BrowserWindow({ webPreferences: { nodeIntegration: true } })
-     why: nodeIntegration: true exposes the full Node.js API to the renderer ...
-     fix:
+     Why it's dangerous: nodeIntegration: true exposes the full Node.js API to the renderer ...
+     Recommended fix:
        nodeIntegration: false + preload/contextBridge ...
    CRITICAL  EA002  contextIsolation: false
    HIGH      EA006  this window is unsafe while another window in the project is safe

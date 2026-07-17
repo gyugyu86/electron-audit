@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import type { Finding, Severity } from '../../core/types.js';
 import { buildReportModel, formatSeverityCounts } from './reportModel.js';
+import { messages } from '../messages.js';
 
 const SEVERITY_BADGE: Record<Severity, (text: string) => string> = {
   critical: (text) => chalk.bgRed.white.bold(text),
@@ -17,7 +18,7 @@ const SEVERITY_BADGE: Record<Severity, (text: string) => string> = {
 // able to tell certain findings from heuristic ones at a glance.
 export function formatTerminalReport(findings: Finding[]): string {
   if (findings.length === 0) {
-    return chalk.green('탐지된 취약점이 없습니다.');
+    return chalk.green(messages.terminalNoFindings);
   }
 
   const model = buildReportModel(findings);
@@ -31,7 +32,7 @@ export function formatTerminalReport(findings: Finding[]): string {
     lines.push('');
   }
 
-  lines.push(chalk.bold(`총 ${model.total}건 발견 (${formatSeverityCounts(model.counts)})`));
+  lines.push(chalk.bold(messages.terminalSummary(model.total, formatSeverityCounts(model.counts))));
   return lines.join('\n');
 }
 
@@ -40,8 +41,8 @@ function renderFinding(finding: Finding): string[] {
   const confidenceTag = finding.confidence === 'heuristic' ? chalk.yellow(' [heuristic]') : '';
   const lines = [
     `  ${badge}${confidenceTag} ${chalk.bold(finding.ruleId)}  ${finding.target}`,
-    `    ${chalk.dim('왜 위험한가:')} ${finding.whyDangerous}`,
-    `    ${chalk.dim('권장 수정:')}`,
+    `    ${chalk.dim(messages.whyDangerousLabel)} ${finding.whyDangerous}`,
+    `    ${chalk.dim(messages.recommendedFixLabel)}`,
   ];
   for (const recommendationLine of finding.recommendation.split('\n')) {
     lines.push(`      ${recommendationLine}`);

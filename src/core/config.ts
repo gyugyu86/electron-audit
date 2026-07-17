@@ -17,7 +17,7 @@ export class ConfigError extends Error {}
 export async function loadConfig(configPath: string): Promise<AuditConfig> {
   const resolved = path.resolve(configPath);
   if (!existsSync(resolved)) {
-    throw new ConfigError(`설정 파일을 찾을 수 없습니다: ${configPath}`);
+    throw new ConfigError(`Config file not found: ${configPath}`);
   }
 
   const raw = await readConfigFile(resolved);
@@ -31,7 +31,7 @@ async function readConfigFile(resolved: string): Promise<unknown> {
     try {
       mod = (await import(pathToFileURL(resolved).href)) as { default?: unknown };
     } catch (error) {
-      throw new ConfigError(`설정 파일(JS)을 불러오지 못했습니다: ${(error as Error).message}`);
+      throw new ConfigError(`Failed to load config file (JS): ${(error as Error).message}`);
     }
     return mod.default ?? mod;
   }
@@ -40,36 +40,36 @@ async function readConfigFile(resolved: string): Promise<unknown> {
   try {
     text = readFileSync(resolved, 'utf8');
   } catch (error) {
-    throw new ConfigError(`설정 파일을 읽지 못했습니다: ${(error as Error).message}`);
+    throw new ConfigError(`Failed to read config file: ${(error as Error).message}`);
   }
   try {
     return JSON.parse(text);
   } catch (error) {
-    throw new ConfigError(`설정 파일(JSON)의 형식이 올바르지 않습니다: ${(error as Error).message}`);
+    throw new ConfigError(`Invalid JSON in config file: ${(error as Error).message}`);
   }
 }
 
 function validateConfig(raw: unknown, configPath: string): AuditConfig {
   if (typeof raw !== 'object' || raw === null) {
-    throw new ConfigError(`설정 파일은 객체여야 합니다: ${configPath}`);
+    throw new ConfigError(`Config file must be an object: ${configPath}`);
   }
   const overridesRaw = (raw as { ruleOverrides?: unknown }).ruleOverrides ?? {};
   if (typeof overridesRaw !== 'object' || overridesRaw === null) {
-    throw new ConfigError('`ruleOverrides`는 { 규칙ID: { enabled?, severity? } } 형태의 객체여야 합니다.');
+    throw new ConfigError('`ruleOverrides` must be an object of the form { ruleId: { enabled?, severity? } }.');
   }
 
   const ruleOverrides: Record<string, RuleConfigOverride> = {};
   for (const [ruleId, value] of Object.entries(overridesRaw as Record<string, unknown>)) {
     if (typeof value !== 'object' || value === null) {
-      throw new ConfigError(`규칙 "${ruleId}"의 설정은 객체여야 합니다.`);
+      throw new ConfigError(`Config for rule "${ruleId}" must be an object.`);
     }
     const { enabled, severity } = value as { enabled?: unknown; severity?: unknown };
     if (enabled !== undefined && typeof enabled !== 'boolean') {
-      throw new ConfigError(`규칙 "${ruleId}"의 enabled는 true/false여야 합니다.`);
+      throw new ConfigError(`"enabled" for rule "${ruleId}" must be true or false.`);
     }
     if (severity !== undefined && !VALID_SEVERITIES.includes(severity as Severity)) {
       throw new ConfigError(
-        `규칙 "${ruleId}"의 severity는 ${VALID_SEVERITIES.join('/')} 중 하나여야 합니다 (받은 값: ${String(severity)}).`,
+        `"severity" for rule "${ruleId}" must be one of ${VALID_SEVERITIES.join('/')} (got: ${String(severity)}).`,
       );
     }
     ruleOverrides[ruleId] = { enabled: enabled as boolean | undefined, severity: severity as Severity | undefined };

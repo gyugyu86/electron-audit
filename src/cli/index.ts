@@ -12,6 +12,7 @@ import { formatMarkdownReport } from './formatters/markdown.js';
 import { formatSarifReport } from './formatters/sarif.js';
 import type { ReportMeta } from './formatters/reportModel.js';
 import { computeExitCode, type FailMode } from './exitCode.js';
+import { messages } from './messages.js';
 
 interface CliOptions {
   json?: boolean;
@@ -27,14 +28,14 @@ const program = new Command();
 
 program
   .name('electron-audit')
-  .description('로컬 Electron 프로젝트를 정적 분석해 알려진 보안 안티패턴을 탐지합니다.')
-  .argument('<target-path>', '분석할 Electron 프로젝트 경로')
-  .option('--json', 'JSON으로 출력 (CI/후속 도구용)')
-  .option('--markdown', 'Markdown 리포트로 출력')
-  .option('--sarif', 'SARIF 2.1.0으로 출력 (GitHub 코드 스캐닝용)')
-  .option('--config <path>', '규칙 on/off·심각도 오버라이드 설정 파일 (JSON 또는 JS)')
-  .option('--strict', 'heuristic 탐지도 종료코드에 반영 (severity≥high면 exit 1)')
-  .option('--no-fail', '탐지가 있어도 항상 exit 0 (리포트 전용)')
+  .description(messages.cliDescription)
+  .argument('<target-path>', messages.argTargetPath)
+  .option('--json', messages.optJson)
+  .option('--markdown', messages.optMarkdown)
+  .option('--sarif', messages.optSarif)
+  .option('--config <path>', messages.optConfig)
+  .option('--strict', messages.optStrict)
+  .option('--no-fail', messages.optNoFail)
   .action(runAudit);
 
 await program.parseAsync();
@@ -77,7 +78,7 @@ async function loadConfigOrExit(configPath: string): ReturnType<typeof loadConfi
     return await loadConfig(configPath);
   } catch (error) {
     if (error instanceof ConfigError) {
-      console.error(chalk.red(`설정 오류: ${error.message}`));
+      console.error(chalk.red(messages.configErrorPrefix(error.message)));
       process.exit(2);
     }
     throw error;
@@ -86,10 +87,10 @@ async function loadConfigOrExit(configPath: string): ReturnType<typeof loadConfi
 
 function printTerminalSkipNotes(filesScanned: number, meta: ReportMeta): void {
   const notes: string[] = [];
-  if (meta.filesUnparsable > 0) notes.push(`파싱 실패 ${meta.filesUnparsable}개`);
-  if (meta.filesSkippedOversized > 0) notes.push(`용량 초과로 제외 ${meta.filesSkippedOversized}개`);
-  if (meta.filesSkippedOutsideRoot > 0) notes.push(`대상 폴더 밖을 가리키는 심볼릭 링크 제외 ${meta.filesSkippedOutsideRoot}개`);
+  if (meta.filesUnparsable > 0) notes.push(messages.countUnparsable(meta.filesUnparsable));
+  if (meta.filesSkippedOversized > 0) notes.push(messages.countOversized(meta.filesSkippedOversized));
+  if (meta.filesSkippedOutsideRoot > 0) notes.push(messages.countOutsideRoot(meta.filesSkippedOutsideRoot));
   if (notes.length > 0) {
-    console.error(chalk.dim(`(${notes.join(', ')} / 스캔된 파일 ${filesScanned}개)`));
+    console.error(chalk.dim(messages.terminalSkipNote(notes.join(', '), filesScanned)));
   }
 }

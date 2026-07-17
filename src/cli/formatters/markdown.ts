@@ -1,6 +1,7 @@
 import path from 'node:path';
 import type { Finding, Severity } from '../../core/types.js';
 import { buildReportModel, formatSeverityCounts, orderedFindings, SEVERITY_ORDER, type ReportMeta } from './reportModel.js';
+import { messages } from '../messages.js';
 
 const SEVERITY_HEADING: Record<Severity, string> = {
   critical: '🔴 Critical',
@@ -18,21 +19,18 @@ export function formatMarkdownReport(findings: Finding[], meta: ReportMeta): str
   const model = buildReportModel(findings);
   const out: string[] = [];
 
-  out.push('# electron-audit 리포트', '');
-  out.push(`**대상 프로젝트:** \`${meta.rootDir}\``, '');
+  out.push(messages.markdownTitle, '');
+  out.push(messages.markdownTargetProject(meta.rootDir), '');
 
   if (model.total === 0) {
-    out.push('✅ 탐지된 문제가 없습니다.', '');
+    out.push(messages.markdownNoIssues, '');
     out.push(scanNote(meta));
     return out.join('\n');
   }
 
-  out.push(`**요약:** 총 ${model.total}건 — ${formatSeverityCounts(model.counts)}`, '');
+  out.push(messages.markdownSummary(model.total, formatSeverityCounts(model.counts)), '');
   out.push(scanNote(meta), '');
-  out.push(
-    '> `[heuristic]` 표시는 정적 분석만으로 확정할 수 없어 오탐 가능성이 있는 탐지입니다. 표시가 없으면 high-confidence(확실) 탐지입니다.',
-    '',
-  );
+  out.push(messages.markdownHeuristicNote, '');
 
   const ordered = orderedFindings(model);
   for (const severity of SEVERITY_ORDER) {
@@ -57,9 +55,9 @@ function renderFinding(finding: Finding, rootDir: string): string[] {
     '',
     `\`${location}\``,
     '',
-    `**왜 위험한가:** ${finding.whyDangerous}`,
+    `**${messages.whyDangerousLabel}** ${finding.whyDangerous}`,
     '',
-    '**권장 수정:**',
+    `**${messages.recommendedFixLabel}**`,
     '',
     // Recommendations mix a prose line with a code example, so a plain fence
     // (no language tag) is more honest than mis-highlighting the prose as JS.
@@ -71,10 +69,10 @@ function renderFinding(finding: Finding, rootDir: string): string[] {
 }
 
 function scanNote(meta: ReportMeta): string {
-  const parts = [`스캔한 파일 ${meta.filesScanned}개`];
-  if (meta.filesUnparsable > 0) parts.push(`파싱 실패 ${meta.filesUnparsable}개`);
-  if (meta.filesSkippedOversized > 0) parts.push(`용량 초과 제외 ${meta.filesSkippedOversized}개`);
-  if (meta.filesSkippedOutsideRoot > 0) parts.push(`루트 밖 심볼릭 링크 제외 ${meta.filesSkippedOutsideRoot}개`);
+  const parts = [messages.countScanned(meta.filesScanned)];
+  if (meta.filesUnparsable > 0) parts.push(messages.countUnparsable(meta.filesUnparsable));
+  if (meta.filesSkippedOversized > 0) parts.push(messages.countOversized(meta.filesSkippedOversized));
+  if (meta.filesSkippedOutsideRoot > 0) parts.push(messages.countOutsideRoot(meta.filesSkippedOutsideRoot));
   return `_${parts.join(', ')}._`;
 }
 

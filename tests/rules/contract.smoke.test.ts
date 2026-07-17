@@ -18,8 +18,8 @@ describe('engine contract stubs', () => {
       file: 'src/main.js',
       line: 12,
       target: 'nodeIntegration: true',
-      whyDangerous: '렌더러에 Node API가 노출됩니다.',
-      recommendation: 'nodeIntegration: false + preload/contextBridge 사용',
+      whyDangerous: 'Node APIs are exposed to the renderer.',
+      recommendation: 'Use nodeIntegration: false + preload/contextBridge',
     };
     const nodeRule: NodeRule = {
       id: 'EA001',
