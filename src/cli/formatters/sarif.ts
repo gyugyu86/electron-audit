@@ -29,7 +29,16 @@ function securitySeverity(severity: Severity, confidence: 'high' | 'heuristic'):
   return score.toFixed(1);
 }
 
-export function formatSarifReport(findings: Finding[], meta: ReportMeta, allRules: Rule[]): string {
+export function formatSarifReport(
+  findings: Finding[],
+  meta: ReportMeta,
+  allRules: Rule[],
+  // The base the artifactLocation URIs are made relative to. GitHub code
+  // scanning resolves them against the repo checkout root, which in CI is the
+  // process working directory — so cwd, not the scan target, is the correct
+  // base. Injectable so the URI-base behavior is unit-tested deterministically.
+  cwd: string = process.cwd(),
+): string {
   // One reportingDescriptor per distinct rule id (EA041 has two facets that
   // share an id — keep the first).
   const ruleById = new Map<string, Rule>();
@@ -61,7 +70,7 @@ export function formatSarifReport(findings: Finding[], meta: ReportMeta, allRule
     locations: [
       {
         physicalLocation: {
-          artifactLocation: { uri: relativize(meta.rootDir, finding.file) },
+          artifactLocation: { uri: toSarifUri(finding.file, meta.rootDir, cwd) },
           // SARIF regions are 1-based; aggregate findings anchored at line 0
           // (package.json manifest checks) clamp to 1.
           region: { startLine: Math.max(1, finding.line) },
@@ -95,14 +104,33 @@ export function formatSarifReport(findings: Finding[], meta: ReportMeta, allRule
   return JSON.stringify(sarif, null, 2);
 }
 
-// GitHub matches results to files by a path RELATIVE to the scan root — an
-// absolute path won't match. Same logic as the JSON formatter.
-function relativize(rootDir: string, file: string): string {
+// GitHub code scanning resolves each result's artifactLocation.uri against the
+// repository root (the checkout dir), which in CI is the process working
+// directory. So a SARIF URI is made relative to `cwd`, NOT to the scan target:
+// scanning a subdirectory (e.g. the self-scan demo scanning
+// tests/corpus/synthetic-vuln) then still yields repo-root-relative paths that
+// match real files, instead of scan-root-relative basenames that collide with
+// same-named files at the repo root (a fixture's `package.json` mis-mapping
+// onto the repo's own). When cwd === scanRoot (the common `path: .` case) the
+// result is identical to a scan-root-relative path, so this is backward
+// compatible. Only SARIF uses cwd as the base — it is the GitHub-targeted
+// format; the JSON and Markdown formatters stay scan-root-relative, which reads
+// better for a single project's report.
+function toSarifUri(file: string, scanRoot: string, cwd: string): string {
   if (!path.isAbsolute(file)) {
     return file;
   }
-  const relative = path.relative(rootDir, file);
-  return relative.startsWith('..') ? file : relative;
+  const fromCwd = path.relative(cwd, file);
+  if (fromCwd !== '' && !fromCwd.startsWith('..') && !path.isAbsolute(fromCwd)) {
+    return fromCwd;
+  }
+  // File is outside cwd (e.g. an absolute scan target run from an unrelated
+  // working directory) — fall back to scan-root-relative. Collected files are
+  // always within the scan root, so this is a clean relative path except in the
+  // exotic symlinked-root case, where it may stay absolute exactly as the
+  // pre-cwd behavior did (a separate hardening, out of scope here).
+  const fromRoot = path.relative(scanRoot, file);
+  return fromRoot.startsWith('..') ? file : fromRoot;
 }
 
 // Reads the tool's own version from package.json (../../../package.json holds

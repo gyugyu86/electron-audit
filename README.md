@@ -161,6 +161,10 @@ The SARIF is uploaded even when there are findings (the gate is a separate
 step); set `fail-on-findings: false` to report only. GitHub runners ship with
 Node, so no setup step is needed.
 
+On pull requests **from a fork**, GitHub withholds `security-events: write`, so
+the upload step is skipped there — a GitHub restriction, not an error. Runs on
+branches in the same repository upload normally.
+
 ## Rules (21 implemented)
 
 Severity: `critical` > `high` > `medium` > `low` > `info`.
