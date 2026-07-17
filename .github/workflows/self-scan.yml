@@ -2,6 +2,7 @@
 # and scans the intentionally-vulnerable synthetic-vuln fixture, then uploads
 # the SARIF to GitHub code scanning — an end-to-end demonstration of the
 # scan → SARIF → Security-tab pipeline on the tool's own current code.
+# e2e: verify SARIF cwd-relative uri reaches the Security tab
 name: self-scan (demo)
 
 on:
