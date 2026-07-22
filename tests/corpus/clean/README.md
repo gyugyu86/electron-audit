@@ -29,7 +29,7 @@ upstream bump.
 
 | repo | pinned SHA | findings at this SHA |
 | :-- | :-- | :-- |
-| electron/fiddle | `75831f72ca4b1345fd73622be814d12393386a2a` | 17 — EA001×1, EA002×1, EA003×1, EA004×1, EA005×1, EA007×1 (all six heuristic, from the single dynamic `webPreferences` call site `src/main/windows.ts:74`), EA011×2 (own HTML CSP `style-src 'unsafe-inline'`, medium), EA040×1 (heuristic, `src/main/windows.ts:31`), EA042×5 (all in the bundled `static/show-me/` example apps), EA060×3 (Sentry, info) |
+| electron/fiddle | `75831f72ca4b1345fd73622be814d12393386a2a` | 16 — EA001×1, EA002×1, EA003×1, EA004×1, EA005×1, EA007×1 (all six heuristic, from the single dynamic `webPreferences` call site `src/main/windows.ts:74`), EA011×2 (own HTML CSP `style-src 'unsafe-inline'`, medium), EA042×5 (all in the bundled `static/show-me/` example apps), EA060×3 (Sentry, info) |
 | electron/minimal-repro | `b4f681add21303def253f4f1a36cfe28d44787fe` | 1 — EA011×1 (own CSP `style-src 'unsafe-inline'`, medium) |
 
 High-confidence critical/high on both: **0**.
