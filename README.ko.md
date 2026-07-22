@@ -140,18 +140,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: gyugyu86/electron-audit@v0.1.2
+      - uses: gyugyu86/electron-audit@v0.1.3
         with:
           path: .                  # 스캔할 프로젝트 경로
-          version: 0.1.2           # 스캐너 버전 고정 (기본: latest)
+          version: 0.1.3           # 스캐너 버전 고정 (기본: latest)
           # fail-on-findings: true # high-confidence critical/high면 체크 실패 (기본)
           # upload: true           # 코드 스캐닝 업로드 (기본)
 ```
 
-`@v0.1.2` 태그 고정을 권장합니다. supply-chain 관점에서 가장 강한 보장을 원하면
+`@v0.1.3` 태그 고정을 권장합니다. supply-chain 관점에서 가장 강한 보장을 원하면
 태그가 가리키는 커밋 SHA로 고정하세요 — 저자는 태그는 옮길 수 있어도 커밋 SHA는
-옮길 수 없습니다. `git rev-parse v0.1.2^{commit}`로 조회해
-`uses: gyugyu86/electron-audit@<sha>  # v0.1.2` 형태로 씁니다.
+옮길 수 없습니다. `git rev-parse v0.1.3^{commit}`로 조회해
+`uses: gyugyu86/electron-audit@<sha>  # v0.1.3` 형태로 씁니다.
 
 findings가 있어도 SARIF는 항상 업로드되며(게이트는 별도 스텝), `fail-on-findings:
 false`로 "리포트만"도 가능합니다. GitHub 러너에는 Node가 기본 설치돼 있습니다.
