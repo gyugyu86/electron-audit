@@ -14,6 +14,12 @@
   of the project is scanned. Skipped files are counted separately from parse
   failures and surfaced in the report; set `ELECTRON_AUDIT_DEBUG=1` to print
   the per-file error to stderr.
+- `.ts` files that use TypeScript generics (`<T>`, generic arrow functions)
+  are now parsed correctly. The parser previously enabled the JSX plugin for
+  every extension, so a `.ts` generic's `<` was read as JSX, the file failed
+  to parse, and it was silently skipped — a false negative if that file held
+  a real issue. The JSX plugin is now selected by extension (`.ts`/`.mts`/
+  `.cts` parse without it; `.tsx`/`.jsx`/`.js` keep it).
 
 ## 0.1.3
 
