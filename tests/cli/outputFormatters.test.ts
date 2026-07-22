@@ -8,6 +8,7 @@ const META: ReportMeta = {
   rootDir: '/project',
   filesScanned: 3,
   filesUnparsable: 1,
+  filesAnalysisErrors: 0,
   filesSkippedOversized: 0,
   filesSkippedOutsideRoot: 0,
 };
@@ -31,6 +32,24 @@ describe('formatJsonReport', () => {
     // Critical first, and absolute paths under root are made relative.
     expect(parsed.findings[0]).toMatchObject({ ruleId: 'EA001', file: 'main.js' });
     expect(parsed.findings[1]).toMatchObject({ ruleId: 'EA050', file: 'updater.js', confidence: 'heuristic' });
+  });
+
+  it('surfaces the analysis-error skip count separately from parse failures', () => {
+    const parsed = JSON.parse(formatJsonReport(FINDINGS, { ...META, filesAnalysisErrors: 2 }));
+    expect(parsed.summary.filesAnalysisErrors).toBe(2);
+    expect(parsed.summary.filesUnparsable).toBe(1); // distinct stage, distinct count
+  });
+});
+
+describe('analysis-error count surfacing (markdown)', () => {
+  it('shows the skipped-analysis count in the scan note', () => {
+    const md = formatMarkdownReport(FINDINGS, { ...META, filesAnalysisErrors: 2 });
+    expect(md).toContain('2 skipped (analysis error)');
+  });
+
+  it('omits the note when there are no analysis errors', () => {
+    const md = formatMarkdownReport(FINDINGS, { ...META, filesAnalysisErrors: 0 });
+    expect(md).not.toContain('analysis error');
   });
 });
 

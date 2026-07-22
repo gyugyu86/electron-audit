@@ -24,8 +24,10 @@ export const messages = {
   // --- scan notes (shared by the terminal skip-note line and markdown scan-note) ---
   countScanned: (n: number): string => `${n} files scanned`,
   countUnparsable: (n: number): string => `${n} failed to parse`,
+  countAnalysisErrors: (n: number): string => `${n} skipped (analysis error)`,
   countOversized: (n: number): string => `${n} skipped (over size limit)`,
   countOutsideRoot: (n: number): string => `${n} symlink(s) outside root skipped`,
+  analysisErrorDetail: (file: string, message: string): string => `  analysis error: ${file}: ${message}`,
   terminalSkipNote: (notes: string, filesScanned: number): string => `(${notes} / ${filesScanned} files scanned)`,
 
   // --- finding labels (shared by both formatters; each applies its own styling) ---

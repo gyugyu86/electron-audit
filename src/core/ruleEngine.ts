@@ -11,10 +11,24 @@ import type {
 } from './types.js';
 import { parseSource } from './parser.js';
 
+export interface AnalysisError {
+  file: string;
+  message: string;
+}
+
 export interface RuleEngineRunResult {
   findings: Finding[];
   filesScanned: number;
+  // Files whose SOURCE could not be parsed (parseSource returned undefined).
   filesUnparsable: number;
+  // Files that parsed but threw while a rule analyzed them (e.g. babel's
+  // scope-crawl on the first traverse throwing `Duplicate declaration`).
+  // Counted separately from filesUnparsable because the cause is different:
+  // the file is valid enough to parse but not to analyze. These files are
+  // skipped, not crashed on. `analysisErrors` carries the per-file messages
+  // for debug surfaces; the count is what the report shows by default.
+  filesAnalysisErrors: number;
+  analysisErrors: AnalysisError[];
 }
 
 export class RuleEngine {
@@ -32,6 +46,7 @@ export class RuleEngine {
 
     const findings: Finding[] = [];
     const parsedFiles: ParsedProjectFile[] = [];
+    const analysisErrors: AnalysisError[] = [];
     let filesUnparsable = 0;
 
     for (const file of files) {
@@ -40,12 +55,29 @@ export class RuleEngine {
         filesUnparsable += 1;
         continue;
       }
-      parsedFiles.push({ file, ast: parsed.ast });
 
-      const context: NodeRuleContext = { file, ast: parsed.ast, project };
-      for (const rule of nodeRules) {
-        findings.push(...rule.check(context));
+      // Isolate analysis PER FILE, not per rule. babel crawls an AST's scope
+      // lazily on its first traverse(), so a scope error (e.g. a duplicate
+      // binding) throws from whichever node rule traverses first — catching
+      // per rule would just re-hit it for all N rules on the same file. Buffer
+      // this file's findings so a mid-analysis throw discards the file cleanly:
+      // it contributes no findings and, crucially, is NOT added to parsedFiles,
+      // so the aggregate pass (which only ever traverses parsedFiles) can't
+      // re-encounter and re-throw on it either. The threat model is untrusted
+      // third-party code; one unanalyzable file must never kill the whole scan.
+      const fileFindings: Finding[] = [];
+      try {
+        const context: NodeRuleContext = { file, ast: parsed.ast, project };
+        for (const rule of nodeRules) {
+          fileFindings.push(...rule.check(context));
+        }
+      } catch (error) {
+        analysisErrors.push({ file: file.path, message: (error as Error).message });
+        continue;
       }
+
+      findings.push(...fileFindings);
+      parsedFiles.push({ file, ast: parsed.ast });
     }
 
     if (aggregateRules.length > 0) {
@@ -55,6 +87,12 @@ export class RuleEngine {
       }
     }
 
-    return { findings, filesScanned: files.length, filesUnparsable };
+    return {
+      findings,
+      filesScanned: files.length,
+      filesUnparsable,
+      filesAnalysisErrors: analysisErrors.length,
+      analysisErrors,
+    };
   }
 }

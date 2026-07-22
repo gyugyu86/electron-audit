@@ -82,7 +82,8 @@ for (const { name, url, sha } of config.checkouts) {
 
   console.log(`\n=== ${url.replace(/\.git$/, '')} @ ${sha} ===`);
   console.log(
-    `files scanned: ${result.filesScanned}, unparsable: ${result.filesUnparsable}, elapsed: ${elapsed}s`,
+    `files scanned: ${result.filesScanned}, unparsable: ${result.filesUnparsable}, ` +
+      `analysis-errors: ${result.filesAnalysisErrors}, elapsed: ${elapsed}s`,
   );
   console.log(`gating findings (high-confidence critical/high, must be 0): ${gating.length}`);
   console.log(`other findings (allowed): ${others.length}`);

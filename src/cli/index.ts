@@ -54,9 +54,19 @@ async function runAudit(targetPath: string, options: CliOptions): Promise<void> 
     rootDir: scan.project.rootDir ?? targetPath,
     filesScanned: result.filesScanned,
     filesUnparsable: result.filesUnparsable,
+    filesAnalysisErrors: result.filesAnalysisErrors,
     filesSkippedOversized: scan.skippedOversized,
     filesSkippedOutsideRoot: scan.skippedOutsideRoot,
   };
+
+  // The skip COUNTS are always surfaced (below); the per-file error messages
+  // are noise for a normal run but essential when diagnosing why a file was
+  // skipped, so they go to stderr only under an opt-in debug env var.
+  if (process.env.ELECTRON_AUDIT_DEBUG && result.analysisErrors.length > 0) {
+    for (const { file, message } of result.analysisErrors) {
+      console.error(chalk.dim(messages.analysisErrorDetail(file, message)));
+    }
+  }
 
   if (options.sarif) {
     console.log(formatSarifReport(findings, meta, ALL_RULES));
@@ -90,6 +100,7 @@ async function loadConfigOrExit(configPath: string): ReturnType<typeof loadConfi
 function printTerminalSkipNotes(filesScanned: number, meta: ReportMeta): void {
   const notes: string[] = [];
   if (meta.filesUnparsable > 0) notes.push(messages.countUnparsable(meta.filesUnparsable));
+  if (meta.filesAnalysisErrors > 0) notes.push(messages.countAnalysisErrors(meta.filesAnalysisErrors));
   if (meta.filesSkippedOversized > 0) notes.push(messages.countOversized(meta.filesSkippedOversized));
   if (meta.filesSkippedOutsideRoot > 0) notes.push(messages.countOutsideRoot(meta.filesSkippedOutsideRoot));
   if (notes.length > 0) {

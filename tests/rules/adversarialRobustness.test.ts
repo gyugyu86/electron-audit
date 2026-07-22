@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { scanProject } from '../../src/core/scanner.js';
 import { RuleEngine } from '../../src/core/ruleEngine.js';
+import { ALL_RULES } from '../../src/core/rules/index.js';
 import { EA001 } from '../../src/core/rules/EA001.js';
 
 // A static analyzer's threat model is untrusted INPUT (someone else's
@@ -80,5 +81,45 @@ describe('pathological source content', () => {
 
     expect(scan.files).toHaveLength(2); // both pass the size/symlink gate — parsing is what rejects the binary one
     expect(result.filesUnparsable).toBe(1);
+  });
+});
+
+describe('mid-analysis error isolation', () => {
+  // A file can PARSE fine yet make babel's scope-crawl throw on the first
+  // traverse() — the classic case is a same-scope duplicate binding (an
+  // imported name redeclared as a function). This used to propagate out of a
+  // rule's check() and kill the whole scan. It must instead skip that one file
+  // and keep going, counted separately from a parse failure.
+  const DUPLICATE_DECL = "import { helper } from './helper.js';\nfunction helper() {\n  return 1;\n}\nhelper();\n";
+  const VULNERABLE = "const { BrowserWindow } = require('electron');\nnew BrowserWindow({ webPreferences: { nodeIntegration: true } });\n";
+
+  it('skips a file that throws during analysis and still scans the rest — under the full rule set', () => {
+    const dir = makeScratchDir();
+    fs.writeFileSync(path.join(dir, 'crash.js'), DUPLICATE_DECL);
+    fs.writeFileSync(path.join(dir, 'vulnerable.js'), VULNERABLE);
+
+    const scan = scanProject({ rootDir: dir });
+    // No throw despite crash.js — this is the regression the fix locks in.
+    const result = new RuleEngine(ALL_RULES).run(scan.files);
+
+    // crash.js parses, so it is NOT an "unparsable" — it is an analysis error.
+    expect(result.filesUnparsable).toBe(0);
+    expect(result.filesAnalysisErrors).toBe(1);
+    expect(result.analysisErrors[0]?.file.endsWith('crash.js')).toBe(true);
+    expect(result.analysisErrors[0]?.message).toContain('Duplicate declaration');
+
+    // vulnerable.js is unaffected — its EA001 finding still comes through.
+    expect(result.findings.some((f) => f.ruleId === 'EA001')).toBe(true);
+  });
+
+  it('an aggregate rule does not re-crash on the skipped file (excluded from parsedFiles)', () => {
+    const dir = makeScratchDir();
+    fs.writeFileSync(path.join(dir, 'crash.js'), DUPLICATE_DECL);
+    fs.writeFileSync(path.join(dir, 'vulnerable.js'), VULNERABLE);
+
+    const scan = scanProject({ rootDir: dir });
+    // ALL_RULES includes aggregate rules (EA006/010/011/012/041) that traverse
+    // parsedFiles; the run completing without throwing is the assertion.
+    expect(() => new RuleEngine(ALL_RULES).run(scan.files)).not.toThrow();
   });
 });

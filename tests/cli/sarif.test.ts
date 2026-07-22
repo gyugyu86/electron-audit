@@ -8,6 +8,7 @@ const META: ReportMeta = {
   rootDir: '/project',
   filesScanned: 3,
   filesUnparsable: 0,
+  filesAnalysisErrors: 0,
   filesSkippedOversized: 0,
   filesSkippedOutsideRoot: 0,
 };
@@ -100,6 +101,7 @@ describe('formatSarifReport uri base (cwd-relative)', () => {
     rootDir,
     filesScanned: 1,
     filesUnparsable: 0,
+    filesAnalysisErrors: 0,
     filesSkippedOversized: 0,
     filesSkippedOutsideRoot: 0,
   });

@@ -71,6 +71,7 @@ function renderFinding(finding: Finding, rootDir: string): string[] {
 function scanNote(meta: ReportMeta): string {
   const parts = [messages.countScanned(meta.filesScanned)];
   if (meta.filesUnparsable > 0) parts.push(messages.countUnparsable(meta.filesUnparsable));
+  if (meta.filesAnalysisErrors > 0) parts.push(messages.countAnalysisErrors(meta.filesAnalysisErrors));
   if (meta.filesSkippedOversized > 0) parts.push(messages.countOversized(meta.filesSkippedOversized));
   if (meta.filesSkippedOutsideRoot > 0) parts.push(messages.countOutsideRoot(meta.filesSkippedOutsideRoot));
   return `_${parts.join(', ')}._`;

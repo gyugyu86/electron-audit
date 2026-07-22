@@ -6,6 +6,15 @@
 
 - `--version` (`-v`) flag that prints the tool's version and exits.
 
+### Fixed
+
+- A file that parses but throws during rule analysis (for example a
+  same-scope duplicate binding that makes the AST scope-crawl throw) no
+  longer aborts the whole scan. The offending file is skipped and the rest
+  of the project is scanned. Skipped files are counted separately from parse
+  failures and surfaced in the report; set `ELECTRON_AUDIT_DEBUG=1` to print
+  the per-file error to stderr.
+
 ## 0.1.3
 
 ### Fixed

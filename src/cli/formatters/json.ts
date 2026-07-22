@@ -17,6 +17,7 @@ export function formatJsonReport(findings: Finding[], meta: ReportMeta): string 
       bySeverity: model.counts,
       filesScanned: meta.filesScanned,
       filesUnparsable: meta.filesUnparsable,
+      filesAnalysisErrors: meta.filesAnalysisErrors,
       filesSkippedOversized: meta.filesSkippedOversized,
       filesSkippedOutsideRoot: meta.filesSkippedOutsideRoot,
     },
