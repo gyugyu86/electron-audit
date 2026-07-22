@@ -162,6 +162,12 @@ the commit SHA the tag resolves to instead — an author can move a tag, but not
 commit SHA. Run `git rev-parse v0.1.3^{commit}` and use
 `uses: gyugyu86/electron-audit@<sha>  # v0.1.3`.
 
+**Pin the scanner too.** The `version:` input defaults to `latest`, so pinning
+only the action (by tag or SHA) does **not** pin the scanner — it will resolve
+to npm's `latest` at run time, and a scan can change without your workflow
+changing. Set `version:` explicitly, as in the example above, so the action and
+the scanner are pinned together and scans stay reproducible.
+
 The SARIF is uploaded even when there are findings (the gate is a separate
 step); set `fail-on-findings: false` to report only. GitHub runners ship with
 Node, so no setup step is needed.

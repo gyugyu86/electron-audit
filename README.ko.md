@@ -153,6 +153,11 @@ jobs:
 옮길 수 없습니다. `git rev-parse v0.1.3^{commit}`로 조회해
 `uses: gyugyu86/electron-audit@<sha>  # v0.1.3` 형태로 씁니다.
 
+**스캐너 버전도 고정하세요.** `version:` 입력의 기본값은 `latest`라, 액션만
+고정(태그·SHA)해도 스캐너는 **고정되지 않습니다** — 실행 시점의 npm `latest`로
+떠버려, 워크플로가 그대로여도 스캔 결과가 달라질 수 있습니다. 위 예시처럼
+`version:`을 명시해 액션과 스캐너를 함께 고정해야 스캔이 재현 가능합니다.
+
 findings가 있어도 SARIF는 항상 업로드되며(게이트는 별도 스텝), `fail-on-findings:
 false`로 "리포트만"도 가능합니다. GitHub 러너에는 Node가 기본 설치돼 있습니다.
 
