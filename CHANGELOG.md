@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `--version` (`-v`) flag that prints the tool's version and exits.
+
 ## 0.1.3
 
 ### Fixed
