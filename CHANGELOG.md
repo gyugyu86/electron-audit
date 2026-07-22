@@ -27,6 +27,13 @@
   inline literal would be.
 - No breaking changes.
 
+### Packaging
+
+- The build now removes `dist/` before compiling. tsc does not delete
+  output files whose source moved or was deleted, so a stale artifact could
+  otherwise linger into the packed tarball.
+- `CHANGELOG.md` is included in the npm package.
+
 ### Internal
 
 - Added a clean-app corpus harness (pinned upstream commit SHAs) that
