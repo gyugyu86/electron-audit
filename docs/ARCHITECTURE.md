@@ -1,10 +1,11 @@
 # electron-audit
 
 로컬 Electron 프로젝트를 정적 분석해 알려진 Electron 보안 안티패턴(안전하지
-않은 `webPreferences`, CSP 미흡, 명령 주입, 위험한 IPC 노출, 검증 없는 외부
-URL/원격 데이터 처리 등)을 탐지하고, 심각도별 리포트(터미널/JSON/Markdown)를
-출력하는 CLI 도구다. 규칙마다 "왜 위험한지 + 수정 예시 코드"를 함께 제공하는
-교육적 리포트가 핵심 가치다.
+않은 `webPreferences`, CSP 미흡, 명령 주입, 검증 없는 외부 URL/원격 데이터
+처리 등)을 탐지하고, 심각도별 리포트(터미널/JSON/Markdown/SARIF)를 출력하는
+CLI 도구다. GitHub code scanning 연동용 composite action(`action.yml`,
+`npx electron-audit --sarif`를 실행)도 제공한다. 규칙마다 "왜 위험한지 +
+수정 예시 코드"를 함께 제공하는 교육적 리포트가 핵심 가치다.
 
 ## 아키텍처 원칙
 
@@ -21,19 +22,36 @@ src/
     scanner.ts       파일 수집·필터
     ruleEngine.ts    규칙 실행·수집
     report.ts        결과 구조체(Finding[]) → 포맷 무관
-    types.ts         Finding, Rule, Severity 등 핵심 타입
+    types.ts         Finding, Rule, Severity, ProjectContext 등 핵심 타입
+    index.ts         core 공개 API 배럴 (GUI/Action이 직접 import하는 표면)
+    parser.ts        @babel/parser 래퍼 — 모든 파싱 실패를 undefined로 흡수
+    config.ts        --config 로더(규칙 on/off·심각도 오버라이드)
+    electronVersion.ts   package.json에서 electron major 버전 판독
+    projectMetadata.ts   rootDir/packageJsonPath/dependencyNames/build 수집
+    url.ts           URL 스킴 파싱 헬퍼
     fileRoleClassifier.ts   파일이 main/preload/renderer 중 무엇인지 분류
     rules/           규칙 하나당 파일 하나 (EA001.ts ...)
-    ast/             AST 기반 공용 프리미티브 (webPreferences 추출기 등)
-    csp/             CSP 토크나이저 프리미티브
+      index.ts         ALL_RULES — 구현된 전체 규칙 목록(단일 진실원)
+      shared/          여러 규칙이 공유하는 "분류" 로직(아래 규약 참조)
+    ast/             규칙이 조회하는 AST 공용 프리미티브(아래 프리미티브 참조)
+    csp/             cspTokenizer.ts + htmlCspExtractor.ts(HTML <meta> CSP)
   cli/             ← 얇은 CLI 래퍼
-    index.ts         인자 파싱, 엔진 호출
-    formatters/      terminal.ts, json.ts, markdown.ts
+    index.ts         인자 파싱, 엔진 호출, 종료코드 결정
+    exitCode.ts      종료코드 정책(default/strict/none)
+    messages.ts      사용자 노출 문자열 상수(영문; 향후 로케일 추가 대비 flat)
+    formatters/      terminal.ts, json.ts, markdown.ts, sarif.ts, reportModel.ts
   config/
     defaultConfig.ts
+scripts/           ← 빌드/테스트 보조(엔진 아님)
+  fetchCleanCorpus.ts    Tier-1 clean 코퍼스 SHA 핀 clone
+  checkCleanCorpus.ts    clean 코퍼스 FP 게이트 스캔
 tests/
   fixtures/          규칙별 취약(vulnerable)/안전(safe) 샘플
   rules/             규칙별 유닛 테스트
+  cli/               포맷터/exitCode 등 CLI 계층 테스트
+  core/              config/파서 등 core 헬퍼 테스트
+  corpus/            코퍼스 회귀 스냅샷 + FP(clean) 코퍼스
+.github/workflows/   ci.yml, self-scan.yml, clean-corpus.yml
 ```
 
 ## 코딩 규약
@@ -42,12 +60,18 @@ tests/
 - 규칙 하나당 파일 하나(`src/core/rules/EA0xx.ts`).
 - 각 규칙은 `{ id, severity, target(탐지대상), whyDangerous(왜위험),
   recommendation(권장수정) }` 구조를 반드시 갖는다.
-- 여러 규칙이 같은 판정 로직에서 갈라지는 경우(예: EA020/021/022는 한
-  콜사이트를 한 번만 분류해 서로 다른 ruleId를 매기는 동일 분석의 세 등급)
-  실제 판정은 `src/core/rules/shared/`에 두고, `rules/EA0xx.ts`는 그 결과를
-  자기 ruleId로 필터링해 자신의 whyDangerous/recommendation만 붙이는 얇은
-  래퍼로 유지한다. `rules/` 바로 아래 파일은 항상 "파일 하나 = 규칙 ID
-  하나"를 지킨다.
+- 공유 로직은 성격에 따라 **두 위치**로 나뉜다. 혼동하면 안 된다:
+  - **`src/core/rules/shared/`** — "한 콜사이트를 **한 번 분류**해 여러 ruleId로
+    갈라지는(팬아웃)" 판정. 예: EA020/021/022는 한 명령 실행 콜사이트를 한 번만
+    분류(`commandInjection.ts`)해 인자 위험도·싱크 종류에 따라 셋 중 하나의
+    ruleId를 매긴다. `rules/EA0xx.ts`는 그 결과를 자기 ruleId로 필터링해 자신의
+    whyDangerous/recommendation만 붙이는 얇은 래퍼로 유지한다.
+  - **`src/core/ast/`** — "여러 규칙이 **각자 조회**하는 공용 프리미티브"(팬아웃
+    아님, 단순 헬퍼). 예: `isStaticSafeLiteral`, `schemeGuard`. 한 규칙만 지금
+    쓰더라도 성격상 여러 규칙이 참조할 헬퍼면 여기에 둔다(그래서 EA040 전용인
+    `schemeGuard`도 `rules/shared/`가 아니라 `core/ast/`에 있다 — EA042/EA050이
+    같은 스킴-가드 판정을 재사용할 여지가 있는 프리미티브이기 때문).
+  - `rules/` 바로 아래 파일은 항상 "파일 하나 = 규칙 ID 하나"를 지킨다.
 - 규칙 리포트에는 **"왜 위험한지 설명 + 수정 예시 코드"**를 반드시 포함한다.
   이게 이 도구의 진짜 가치(교육적 리포트)다.
 
@@ -57,10 +81,14 @@ tests/
 
 - **`Finding`**: `severity`(critical/high/medium/low/info)와 별개로
   `confidence: 'high' | 'heuristic'` 필드를 갖는다. 데이터플로우 기반 규칙
-  (EA022/030/050 등)은 오탐이 필연이므로, 리포트에서 확실한 탐지와 휴리스틱
-  탐지를 반드시 구분해서 보여준다. 필드명은 `ruleId, severity, confidence,
-  file, line, target, whyDangerous, recommendation` 등 전부 영문 — 설명
-  "값"은 한국어로 채워도 되지만 필드명은 영문 고정.
+  (EA022/050 등)은 오탐이 필연이므로, 리포트에서 확실한 탐지와 휴리스틱
+  탐지를 반드시 구분해서 보여준다. 필드명(`ruleId, severity, confidence,
+  file, line, target, whyDangerous, recommendation` 등)은 물론, 사용자에게
+  노출되는 문자열 "값"(whyDangerous/recommendation, CLI usage/help,
+  포맷터 라벨, config 오류 메시지)도 **전부 영문**이다 — 공개 repo·npm 패키지라
+  영문으로 통일했다. CLI 계층의 노출 문자열은 `src/cli/messages.ts` 한 곳에
+  상수로 모아 두었고(향후 로케일 추가 대비 flat 키 구조), core는
+  자기 문자열을 자기 안에 둔다(core→cli 단방향 의존 유지).
 - **`Rule`은 두 종류**이며 판별 필드 `kind`로 구분한다:
   - `NodeRule`(`kind: 'node'`) — 파일/AST 노드 단위 매칭 규칙.
   - `AggregateRule`(`kind: 'aggregate'`) — 프로젝트 전체를 다 본 뒤 "어디에도
@@ -69,28 +97,35 @@ tests/
   - `RuleEngine`은 파일을 한 번만 파싱해 그 AST를 NodeRule에 넘기고, 같은
     파싱 결과를 `parsedFiles`로 묶어 AggregateRule에 넘긴다(집계 규칙이 다시
     파싱하지 않도록). 두 종류를 모두 실행하고 결과를 합쳐 `Finding[]`을 낸다.
-  - 두 컨텍스트 모두 `project: ProjectContext`를 받는다. 스캐너가
-    `package.json`에서 한 번 읽어 채우며, 지금은 `electronMajorVersion`을
-    담는다 — EA002/003이 "키 부재"의 위험도를 버전 기본값(contextIsolation
-    12+, sandbox 20+)에 따라 판정하는 데 쓴다. 규칙에 프로젝트 전역 사실이
-    필요하면 파일마다 다시 읽지 말고 여기에 추가한다.
+  - 두 컨텍스트 모두 `project: ProjectContext`를 받는다. 스캐너가 스캔 시작 시
+    한 번 채우며, 현재 담는 필드는: `electronMajorVersion`(EA002/003이 "키
+    부재"의 위험도를 버전 기본값 — contextIsolation 12+, sandbox 20+ — 에 따라
+    판정, EA062가 구버전 판정), `rootDir`, `packageJsonPath`(매니페스트 자체를
+    앵커로 하는 EA060/061/062용), `dependencyNames`(EA060 텔레메트리 SDK·EA061
+    electron-builder 사용 여부), `packageJsonBuild`(EA061 서명 설정 점검),
+    `htmlCspSites`(HTML `<meta>` CSP — 아래 CSP 프리미티브 참조). 규칙에
+    프로젝트 전역 사실이 필요하면 파일마다 다시 읽지 말고 여기에 추가한다.
 - **파일 역할 분류**(`main`/`preload`/`renderer`)는 규칙과 분리된 독립 모듈
   `fileRoleClassifier`가 담당한다. `package.json`의 `main` 필드 →
   `webPreferences.preload` 경로 → 파일명 휴리스틱 순으로 판정하고, 불확실하면
   전역 처리 + `confidence` 하향. 오분류가 실질 오탐/미탐의 주원인이므로 단독
   테스트 가능하게 유지한다.
-- **공용 프리미티브 3개**를 규칙보다 먼저 만든다. 여러 규칙이 같은 로직을
-  중복 구현하지 않게 하기 위함이다.
+- **공용 프리미티브 5개**를 규칙보다 먼저(또는 규칙과 함께) 만든다. 여러 규칙이
+  같은 로직을 중복 구현하지 않게 하기 위함이다.
   1. **webPreferences 추출기**(`src/core/ast/webPreferencesExtractor.ts`) —
-     `BrowserWindow` 생성 콜사이트 AST를 정규화된 모델로 변환. A그룹
-     (EA001~006) 6개 규칙이 모두 이 결과를 읽는다.
+     `BrowserWindow` 생성 콜사이트 AST를 각 필드의 4-state(explicit-true/
+     explicit-false/absent/dynamic) 모델로 정규화. A그룹 EA001~007이 이 결과를
+     읽고, EA010(CSP 부재 게이트)·EA041(창 안전성 참조)도 `windowCallSites.ts`를
+     통해 같은 결과를 재사용한다. 옵션이 `new BrowserWindow(getOptions())`처럼
+     같은 파일 헬퍼 함수 호출로 주어지면 아래 5번 프리미티브로 정적 해석한다.
   2. **`isStaticSafeLiteral(node, path)`**(`src/core/ast/isStaticSafeLiteral.ts`,
      `path`는 `@babel/traverse`의 `NodePath` — 단순 파일 경로 문자열로는 scope
      조회가 불가능해서 필요) — 리터럴/같은 파일 `const` 폴딩(체인 포함)/그런
      값들로만 구성된 TemplateLiteral·BinaryExpression(`+`)까지 안전으로 판정.
      const 폴딩 자체는 `src/core/ast/constFolding.ts`의
      `resolveConstIdentifier`를 webPreferences 추출기와 공유(중복 구현 금지).
-     EA020/021/022가 사용 중이며 EA040/042도 그대로 재사용 예정.
+     EA020/021/022와 EA040이 사용 중이다(EA042는 같은 constFolding 계열
+     `resolveStaticString`을 쓴다).
   3. **CSP 토크나이저**(`src/core/csp/cspTokenizer.ts`) — 디렉티브(`;` split)
      → 소스(공백 split) 2단계 토크나이즈. EA011/012가 사용. 와일드카드 판정은
      반드시 토큰 단위로 해야 `*.foo.com` 같은 부분 와일드카드를 `*` 오탐으로
@@ -104,20 +139,50 @@ tests/
      나눈다(script-src/default-src의 unsafe-inline·모든 unsafe-eval=high, 그
      외 unsafe-inline=medium). 그래서 EA011/012는 NodeRule이 아니라
      AggregateRule이다(HTML CSP는 프로젝트 전역 데이터라서).
+  4. **`hasDominatingSchemeGuard(callPath, arg)`**(`src/core/ast/schemeGuard.ts`)
+     — `shell.openExternal(url)` 같은 호출에 대해, 같은 함수 스코프 안의 스킴
+     화이트리스트 가드가 (ㄱ) 그 호출을 **지배(dominate)**하고 (ㄴ) 싱크에
+     도달하는 값과 **동일한 바인딩**을 검사하며 (ㄷ) 허용 집합이 http/https의
+     부분집합임이 정적으로 증명되는지를 판정한다. `protocol === 'https:'` 등식,
+     인라인 배열 `.includes`, `startsWith` 프리픽스, early-return 가드 형태를
+     인식한다. 정적으로 증명 못 하는 형태(다른 함수로 분리된 검증, http/https
+     외 스킴 혼입, 다른 값 검사, 비지배, 재할당)는 **전부 "가드 없음"으로**
+     떨어뜨린다 — 이 판정의 실패 모드는 오탐이 아니라 미탐이므로 안전 측(발화
+     유지)으로 실패한다. EA040이 사용하며, 미래 재사용자는 EA042/EA050.
+  5. **`resolveLocalFunctionReturnObject(callNode, path)`**
+     (`src/core/ast/localFunctionReturn.ts`) — `fn()` 호출을 같은 파일 함수가
+     **무조건 반환하는 객체 리터럴**로 정적 해석한다. `new
+     BrowserWindow(getOptions())`처럼 옵션을 헬퍼 함수로 빼는 흔한 관용구를
+     위해 webPreferences 추출기의 `resolveOptionsObject`에서만 쓴다. 허용
+     조건(전부 충족 시에만 해석, 하나라도 어긋나면 `dynamic` 유지):
+     bare-identifier callee / 같은 파일 비재할당 함수(선언 또는 const 화살표·
+     함수식) / 인자 0개 / 단일 무조건 top-level return / 객체 리터럴 /
+     top-level spread 없음. const-함수 케이스는
+     `constFolding.resolveConstIdentifier`를 재사용하되 `constFolding.ts`
+     자체는 건드리지 않아, 이 프리미티브는 EA020/021/022(명령 주입) 판정과
+     격리된다. 증명 안 되면 `dynamic` 유지 = 종전대로 heuristic 발화(미탐 방지).
 
 ## 규칙 ID 체계
 
 `EA0xx` 넘버링, 그룹별 범위:
 
-| 그룹 | 범위 | 내용 |
-| :-- | :-- | :-- |
-| A | 001~007 | BrowserWindow / webPreferences |
-| B | 010~013 | Content Security Policy |
-| C | 020~022 | 명령 실행(command injection) |
-| D | 030~032 | IPC |
-| E | 040~043 | 외부 상호작용(shell.openExternal, 원격 URL 등) |
-| F | 050~051 | 원격 데이터 & 업데이트 |
-| G | 060~062 | 기타 위생(텔레메트리, 코드서명, 구버전) |
+범위는 넘버링 예약을 포함한 계획이고, "구현" 열이 현재 실제 상태다.
+
+| 그룹 | 범위 | 내용 | 구현 |
+| :-- | :-- | :-- | :-- |
+| A | 001~007 | BrowserWindow / webPreferences | 전부 |
+| B | 010~013 | Content Security Policy | 전부 |
+| C | 020~022 | 명령 실행(command injection) | 전부 |
+| D | 030~032 | IPC | 미구현(넘버링 예약) |
+| E | 040~043 | 외부 상호작용(shell.openExternal, 원격 URL 등) | 040·041·042 (043 보류) |
+| F | 050~051 | 원격 데이터 & 업데이트 | 050 (051 = v2 후보 #1) |
+| G | 060~062 | 기타 위생(텔레메트리, 코드서명, 구버전) | 전부 |
+
+구현된 규칙은 `src/core/rules/index.ts`의 `ALL_RULES`가 단일 진실원이다(현재
+21개 항목 — EA041은 absence + unconditional-allow 두 facet이 같은 ruleId
+'EA041'을 낸다). 보류(EA043 webview/will-navigate, EA051 자동 업데이트 서명)의
+사유는 `ALL_RULES` 주석에 상세히 적혀 있다 — 저오탐 정적 신호를 아직 못 만든
+것이 유일한 이유이며, 특히 EA051은 위험이 실제한 v2 최우선 후보다.
 
 심각도 레벨(5단계): `critical` > `high` > `medium` > `low` > `info`.
 
@@ -137,27 +202,49 @@ fixture·테스트 없이 규칙만 추가하지 않는다.
   `ALL_RULES`(CLI도 동일하게 사용하는 전체 규칙 목록) 전체를 실제(또는 합성)
   프로젝트에 통째로 돌려 findings를 vitest 스냅샷으로 고정. 규칙 A를 고쳤을 때
   규칙 B의 출력이 의도치 않게 바뀌는 걸 잡는 용도. `tests/corpus/synthetic-vuln/`은
-  실제 dnsChanger 소스가 없을 때 spec 4번 패턴을 하나씩 재현한 합성 프로젝트 —
-  아직 구현 안 된 규칙(EA006/011/012/040/050 등)에 대응하는 패턴도 미리
-  심어 뒀으니, 해당 규칙이 M2에서 추가되면 코드 수정 없이 findings가 자동으로
-  늘어난다. 스냅샷은 최초 생성 시 사람이 내용을 승인하는 게 전제 — 규칙을
-  바꿔 스냅샷이 깨지면 그게 의도된 변경인지 회귀인지 먼저 판단하고 나서
-  `-u`로 갱신한다.
-- **FP 코퍼스** (`tests/corpus/clean/`) — 실제로 안전한(자기가 안 쓴)
+  실제 dnsChanger 소스가 없을 때 spec 4번 패턴을 하나씩 재현한 합성 프로젝트로,
+  구현된 규칙 전반(A~C·E~G)에 대응하는 패턴을 심어 두었다. 스냅샷은 최초 생성 시
+  사람이 내용을 승인하는 게 전제 — 규칙을 바꿔 스냅샷이 깨지면 그게 의도된
+  변경인지 회귀인지 먼저 판단하고 나서 `-u`로 갱신한다(무심코 `-u` 금지).
+  스냅샷에는 라벨 문자열이 아니라 ruleId/severity/confidence/file/line만 고정하므로,
+  포맷터 라벨이나 문구를 바꿔도 이 스냅샷은 깨지지 않는다.
+- **FP(clean) 코퍼스** (`tests/corpus/clean/`) — 실제로 안전한(자기가 안 쓴)
   Electron 앱에 대해 **"high-confidence이면서 severity critical/high"인 finding=0**
-  을 요구(= 기본 종료코드가 실패하는 바로 그 기준, `cli/exitCode.ts`와 일치).
-  heuristic이나 high-confidence여도 medium/low/info는 허용 — 안전한 앱도 경미한
-  진짜 탐지(예: minimal-repro(구 electron-quick-start)의 style-src `unsafe-inline` → EA011 medium)를
-  가질 수 있고, 그게 빌드를 막으면 안 되기 때문. M3 "오탐 없이" 기준을 재는 유일한
-  수단. 외부 코드 반입이 필요하므로 도입 전 반드시 사용자 확인을 받는다.
+  을 요구. 이 기준은 하드코딩하지 않고 `cli/exitCode.ts`의 `computeExitCode(…,
+  'default')`를 finding별로 재사용해 판정한다 — 그래서 이 게이트는 도구가
+  소비자 CI를 실제로 실패시키는 기준과 정의상 어긋날 수 없다. heuristic이나
+  high-confidence여도 medium/low/info는 허용 — 안전한 앱도 경미한 진짜 탐지(예:
+  minimal-repro(구 electron-quick-start)의 style-src `unsafe-inline` → EA011
+  medium)를 가질 수 있고 그게 빌드를 막으면 안 되기 때문. 두 층으로 구성된다:
+  - **벤더 코퍼스**(`tests/corpus/clean/minimal-repro/`) — 소량 파일을 저장소에
+    직접 벤더링(출처·SHA는 `PROVENANCE.md`). 오프라인이라 `npm test`에 포함되며
+    `cleanCorpus.test.ts`가 검사한다.
+  - **Tier-1 체크아웃**(`tests/corpus/clean/tier1.json` → `.checkouts/`) — 실제
+    서드파티 레포(`electron/fiddle`, `electron/minimal-repro`)를 **정확한 커밋
+    SHA로 핀 고정**해 스크립트로 clone한다. 소스를 벤더링하지 않고(`.checkouts/`는
+    gitignore), `npm run corpus:fetch`가 얕게(`--depth 1`) 받고
+    `npm run test:corpus:clean`이 스캔한다. 네트워크가 필요하므로 `npm test`에서
+    분리해 별도 워크플로(`clean-corpus.yml`)로 돌리고, 체크아웃이 없으면 실패가
+    아니라 skip(오프라인 개발자가 막히지 않게)한다. SHA 핀은 upstream이 움직여도
+    게이트가 이유 없이 깨지거나 조용히 통과하지 않게 하기 위함이며, SHA를 올릴
+    때 `tests/corpus/clean/README.md`의 참고용 분포표도 함께 갱신한다.
+  M3 "오탐 없이" 기준을 재는 핵심 수단이다. **외부 코드를 저장소에 반입(벤더링)할
+  때는 도입 전 반드시 사용자 확인을 받는다**(Tier-1은 clone 방식이라 반입이 아님;
+  Tier-2 이상 신규 대상 추가도 사전 확인 대상).
 
 ## 명령어 모음
 
 ```
-npm run build   # tsc -p tsconfig.json
-npm test        # vitest run
+npm run build   # rm -rf dist && tsc -p tsconfig.json && chmod +x dist/cli/index.js
+                # (dist/를 먼저 지운다 — tsc는 소스가 옮겨지거나 삭제돼도 옛
+                #  출력 파일을 안 지우므로, 청소 없이는 잔재가 tarball에 실린다)
+npm test        # vitest run  (오프라인; Tier-1 clean 코퍼스는 제외)
 npm run lint    # eslint .
-npm run dev -- <target-path>   # tsx로 로컬 CLI 실행
+npm run dev -- <target-path>   # tsx로 로컬 CLI 실행 (빌드 없이)
+
+# clean 코퍼스(네트워크 필요, npm test와 분리):
+npm run corpus:fetch        # tier1.json의 SHA 핀으로 서드파티 레포 clone
+npm run test:corpus:clean   # 핀 고정 체크아웃을 스캔해 FP 게이트 검사
 ```
 
 ## 도구 자체의 보안 원칙
