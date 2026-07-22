@@ -1,0 +1,18 @@
+{
+  "_comment": "Tier-1 clean-corpus checkouts. Cloned by `npm run corpus:fetch` (scripts/fetchCleanCorpus.ts) into checkoutsDir (gitignored — never vendored). Each entry is pinned to an exact commit SHA, never a branch or tag, so upstream movement can neither break the FP gate nor let it drift silently. Gate: `npm run test:corpus:clean` (scripts/checkCleanCorpus.ts), kept out of `npm test` so the default loop stays offline.",
+  "checkoutsDir": "tests/corpus/clean/.checkouts",
+  "checkouts": [
+    {
+      "name": "fiddle",
+      "url": "https://github.com/electron/fiddle.git",
+      "sha": "75831f72ca4b1345fd73622be814d12393386a2a",
+      "license": "MIT"
+    },
+    {
+      "name": "minimal-repro",
+      "url": "https://github.com/electron/minimal-repro.git",
+      "sha": "b4f681add21303def253f4f1a36cfe28d44787fe",
+      "license": "CC0-1.0"
+    }
+  ]
+}

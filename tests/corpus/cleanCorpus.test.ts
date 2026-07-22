@@ -30,8 +30,11 @@ const CLEAN_ROOT = path.join(dirname, 'clean');
 // issue and must never land on a known-good app.
 const GATING_SEVERITIES = new Set(['critical', 'high']);
 function cleanAppDirs(): string[] {
+  // Dot-directories are never vendored apps — .checkouts/ holds the
+  // gitignored Tier-1 clones, which are networked and gated separately by
+  // scripts/checkCleanCorpus.ts, never by the offline `npm test` loop.
   return readdirSync(CLEAN_ROOT, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
+    .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
     .map((entry) => entry.name);
 }
 

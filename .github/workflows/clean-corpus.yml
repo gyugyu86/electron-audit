@@ -1,0 +1,31 @@
+# Tier-1 clean-corpus FP gate — separate from ci.yml on purpose: this job
+# needs the network (shallow clones of the pinned third-party checkouts in
+# tests/corpus/clean/tier1.json), while `npm test` must stay offline and
+# fast. Pins are exact commit SHAs, so upstream movement can neither break
+# this gate nor let it drift silently; results only change when our rules
+# (or the pins) change.
+name: clean-corpus
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  fp-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+
+      - run: npm ci
+
+      # Fetch failing loudly here (network/git error) is the intended
+      # signal — the gate below never runs against a missing checkout.
+      - run: npm run corpus:fetch
+
+      - run: npm run test:corpus:clean
