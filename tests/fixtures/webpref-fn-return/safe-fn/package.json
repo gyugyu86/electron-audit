@@ -1,0 +1,1 @@
+{ "name": "safe-fn", "version": "0.0.0", "private": true, "main": "main.js", "devDependencies": { "electron": "^30.0.0" } }

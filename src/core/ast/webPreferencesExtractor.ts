@@ -3,6 +3,7 @@ import * as t from '@babel/types';
 import type { NodePath } from '@babel/traverse';
 import type { File } from '@babel/types';
 import { resolveConstIdentifier } from './constFolding.js';
+import { resolveLocalFunctionReturnObject } from './localFunctionReturn.js';
 
 export type BooleanPreferenceState =
   | { state: 'explicit-true' }
@@ -99,6 +100,16 @@ function resolveOptionsObject(
   if (t.isIdentifier(argNode)) {
     const resolved = resolveConstIdentifier(argNode.name, path);
     if (resolved && t.isObjectExpression(resolved)) {
+      return { kind: 'object', node: resolved };
+    }
+  }
+  // `new BrowserWindow(getOptions())` — resolve the options when getOptions is
+  // a same-file function that unconditionally returns an object literal (a
+  // very common idiom). The primitive proves soundness; anything it can't
+  // prove leaves us at 'dynamic', which still fires heuristically.
+  if (t.isCallExpression(argNode)) {
+    const resolved = resolveLocalFunctionReturnObject(argNode, path);
+    if (resolved) {
       return { kind: 'object', node: resolved };
     }
   }
