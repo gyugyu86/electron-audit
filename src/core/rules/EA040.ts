@@ -5,7 +5,7 @@ import { resolveStaticStringValue } from '../ast/resolveStaticString.js';
 import { parseUrl } from '../url.js';
 import { collectImportBindings } from './shared/importBindings.js';
 import { isShellOpenExternalCallee } from './shared/externalInteraction.js';
-import { hasDominatingSchemeGuard } from './shared/schemeGuard.js';
+import { hasDominatingSchemeGuard } from '../ast/schemeGuard.js';
 
 // http/https/mailto are the schemes it's reasonable to hand to the OS
 // browser/mail client. file:, javascript:, data: etc. can execute or expose
