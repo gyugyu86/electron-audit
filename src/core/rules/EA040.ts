@@ -5,6 +5,7 @@ import { resolveStaticStringValue } from '../ast/resolveStaticString.js';
 import { parseUrl } from '../url.js';
 import { collectImportBindings } from './shared/importBindings.js';
 import { isShellOpenExternalCallee } from './shared/externalInteraction.js';
+import { hasDominatingSchemeGuard } from './shared/schemeGuard.js';
 
 // http/https/mailto are the schemes it's reasonable to hand to the OS
 // browser/mail client. file:, javascript:, data: etc. can execute or expose
@@ -73,6 +74,17 @@ export const EA040: NodeRule = {
             });
           }
           return; // safe scheme literal → silence
+        }
+
+        // A dominating scheme-allowlist guard in the same function — the
+        // exact fix this rule's recommendation prescribes — proves the
+        // scheme is http/https on every path reaching this call. Silence,
+        // not heuristic: warning on the recommended fix would undercut the
+        // report's credibility. Anything the guard matcher cannot prove
+        // falls through to the heuristic finding below (fail toward
+        // reporting, never toward missing a vulnerability).
+        if (hasDominatingSchemeGuard(path, arg)) {
+          return;
         }
 
         findings.push({

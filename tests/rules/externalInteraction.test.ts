@@ -34,6 +34,34 @@ describe('EA040 shell.openExternal', () => {
   });
 });
 
+// A dominating same-scope scheme-allowlist guard IS the fix EA040
+// recommends, so recognized guards silence the rule entirely. Everything
+// the matcher cannot statically prove must keep firing — the failure mode
+// to avoid here is a missed vulnerability, not a noisy report.
+describe('EA040 scheme-guard recognition', () => {
+  it.each([
+    ['guarded-parsed-equality', 'protocol equality on a parsed const (plus inline variant)'],
+    ['guarded-destructure-includes', 'destructured protocol + inline array includes (fiddle shape)'],
+    ['guarded-early-return', 'early-return guard clause before the call'],
+    ['guarded-startswith', 'https:// prefix literal'],
+  ])('stays silent for %s (%s)', (fixture) => {
+    expect(run([EA040], `EA040/${fixture}`).findings).toHaveLength(0);
+  });
+
+  it.each([
+    ['guard-wrong-value', 'the check inspects a different value than the sink'],
+    ['guard-not-dominating', 'the safe condition does not wrap the call'],
+    ['guard-dangerous-scheme', 'the check restricts to file:, not to safe schemes'],
+    ['guard-mixed-schemes', 'the allowlist includes a scheme beyond http/https'],
+    ['guard-helper-function', 'validation lives in another function (stated tool limit)'],
+    ['guard-reassigned-value', 'the value is reassigned between guard and sink'],
+  ])('keeps firing (heuristic) for %s (%s)', (fixture) => {
+    const result = run([EA040], `EA040/${fixture}`);
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]).toMatchObject({ ruleId: 'EA040', severity: 'high', confidence: 'heuristic' });
+  });
+});
+
 const EA041_RULES = [EA041Absence, EA041UnconditionalAllow];
 
 describe('EA041 setWindowOpenHandler', () => {
