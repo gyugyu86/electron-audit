@@ -147,7 +147,7 @@ fixture·테스트 없이 규칙만 추가하지 않는다.
   Electron 앱에 대해 **"high-confidence이면서 severity critical/high"인 finding=0**
   을 요구(= 기본 종료코드가 실패하는 바로 그 기준, `cli/exitCode.ts`와 일치).
   heuristic이나 high-confidence여도 medium/low/info는 허용 — 안전한 앱도 경미한
-  진짜 탐지(예: electron-quick-start의 style-src `unsafe-inline` → EA011 medium)를
+  진짜 탐지(예: minimal-repro(구 electron-quick-start)의 style-src `unsafe-inline` → EA011 medium)를
   가질 수 있고, 그게 빌드를 막으면 안 되기 때문. M3 "오탐 없이" 기준을 재는 유일한
   수단. 외부 코드 반입이 필요하므로 도입 전 반드시 사용자 확인을 받는다.
 

@@ -53,7 +53,7 @@ everywhere.")
   the prior tool misses — and catches the vulnerable HTML `<meta>` CSP.
   → [validation-dnschanger.md](https://github.com/gyugyu86/electron-audit/blob/main/examples/validation-dnschanger.md)
 - Across **four apps of different character** (dnsChanger / zonote / Notable /
-  electron-quick-start): **zero high-confidence false positives**, and the large
+  minimal-repro — formerly electron-quick-start): **zero high-confidence false positives**, and the large
   app scanned to completion without a crash — evidence that FP=0 generalizes
   rather than being specific to one app.
   → [validation-overfitting.md](https://github.com/gyugyu86/electron-audit/blob/main/examples/validation-overfitting.md)

@@ -45,7 +45,7 @@ v1.10.3(2023-03)로 이후 유지보수가 멈췄고, 최신 Electron 버전을 
   권한상승 명령 주입 RCE(`sudo.exec`에 스토어 설정값 보간)를 high-confidence로
   탐지 — 선행 도구가 놓치는 지점입니다. 취약한 HTML `<meta>` CSP도 잡습니다.
   → [validation-dnschanger.md](https://github.com/gyugyu86/electron-audit/blob/main/examples/validation-dnschanger.md)
-- **성격이 다른 4개 앱**(dnsChanger / zonote / Notable / electron-quick-start)에서
+- **성격이 다른 4개 앱**(dnsChanger / zonote / Notable / minimal-repro(구 electron-quick-start))에서
   **high-confidence 오탐 0**, 대형 앱도 무크래시 완주 — FP=0이 특정 앱 현상이
   아니라 일반적으로 성립함을 확인.
   → [validation-overfitting.md](https://github.com/gyugyu86/electron-audit/blob/main/examples/validation-overfitting.md)

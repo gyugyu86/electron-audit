@@ -51,7 +51,7 @@ export const EA041UnconditionalAllow: NodeRule = {
 // Gated three ways to stay off false positives: (1) at least one
 // BrowserWindow must exist, (2) no handler may exist anywhere, and (3) at
 // least one window must NOT be clearly safe — a fully locked-down app
-// (contextIsolation on / nodeIntegration off, like electron-quick-start)
+// (contextIsolation on / nodeIntegration off, like electron/minimal-repro)
 // missing a handler is low risk and reporting it would be noise. The anchor
 // is that first not-clearly-safe window.
 export const EA041Absence: AggregateRule = {

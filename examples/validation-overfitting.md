@@ -59,7 +59,7 @@ heuristic), EA061/062(info/low). 전부 비-게이팅.
 | dnsChanger (앞선 실측) | 4 | **0** |
 | zonote | 2 | **0** |
 | notable | 1 | **0** |
-| electron-quick-start (clean 코퍼스) | 0 | **0** |
+| minimal-repro(구 electron-quick-start) (clean 코퍼스) | 0 | **0** |
 
 **성격이 완전히 다른 4개 앱(DNS 도구·소형 노트앱·대형 노트앱·공식 샘플)에서
 high-confidence 오탐 0.** FP=0은 dnsChanger 특수현상이 아니라 일반적으로 성립.

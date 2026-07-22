@@ -22,7 +22,7 @@ const CLEAN_ROOT = path.join(dirname, 'clean');
 //
 // Heuristic findings are permitted (the tool saying "I can't be sure"). So is
 // a high-confidence finding at medium/low/info severity: a genuinely-safe app
-// can legitimately carry a minor true positive — e.g. electron-quick-start's
+// can legitimately carry a minor true positive — e.g. minimal-repro's
 // CSP has `style-src 'unsafe-inline'`, which EA011 correctly reports at MEDIUM
 // (inline styles are a limited attack surface, unlike inline scripts). That's
 // a real finding, not an FP, and it must not gate a build. A high-confidence

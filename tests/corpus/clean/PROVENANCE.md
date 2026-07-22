@@ -10,12 +10,14 @@ bar against code we didn't write.
 Vendored via abridged copy (only the files needed for the fixture), so the
 test corpus is reproducible offline with no network fetch in CI.
 
-## electron-quick-start/
+## minimal-repro/
 
-- Source: <https://github.com/electron/electron-quick-start>
+- Source: <https://github.com/electron/minimal-repro>
+  (upstream renamed the repo from `electron-quick-start`; this snapshot was
+  taken under the old name — same repo, the old URL redirects)
 - Commit: `b4f681add21303def253f4f1a36cfe28d44787fe`
 - License: **CC0-1.0** (public-domain dedication — see
-  `electron-quick-start/LICENSE.md`).
+  `minimal-repro/LICENSE.md`).
   - Note: this was requested as "MIT", but the upstream repo is actually
     licensed CC0-1.0. CC0 is strictly more permissive than MIT, so
     vendoring is fine; recording the true license here for accuracy.
