@@ -1,7 +1,7 @@
-import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { Finding, Rule, Severity } from '../../core/types.js';
 import { orderedFindings, buildReportModel, type ReportMeta } from './reportModel.js';
+import { readPackageVersion } from '../version.js';
 
 // SARIF 2.1.0 — the format GitHub code scanning ingests natively (results
 // show up in the Security tab and as PR annotations). Emitting valid SARIF is
@@ -92,7 +92,7 @@ export function formatSarifReport(
           driver: {
             name: 'electron-audit',
             informationUri: INFORMATION_URI,
-            version: readToolVersion(),
+            version: readPackageVersion(),
             rules: sarifRules,
           },
         },
@@ -131,16 +131,4 @@ function toSarifUri(file: string, scanRoot: string, cwd: string): string {
   // pre-cwd behavior did (a separate hardening, out of scope here).
   const fromRoot = path.relative(scanRoot, file);
   return fromRoot.startsWith('..') ? file : fromRoot;
-}
-
-// Reads the tool's own version from package.json (../../../package.json holds
-// in both dev — dist/cli/formatters — and installed — node_modules/…/dist/…).
-function readToolVersion(): string {
-  try {
-    const pkgUrl = new URL('../../../package.json', import.meta.url);
-    const pkg = JSON.parse(readFileSync(pkgUrl, 'utf8')) as { version?: string };
-    return pkg.version ?? '0.0.0';
-  } catch {
-    return '0.0.0';
-  }
 }

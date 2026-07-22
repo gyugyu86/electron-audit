@@ -18,6 +18,7 @@ export const messages = {
   optConfig: 'Config file for rule on/off and severity overrides (JSON or JS)',
   optStrict: 'Count heuristic findings toward the exit code too (exit 1 when severity ≥ high)',
   optNoFail: 'Always exit 0 even when there are findings (report only)',
+  optVersion: "Output the tool's version and exit",
   configErrorPrefix: (message: string): string => `Config error: ${message}`,
 
   // --- scan notes (shared by the terminal skip-note line and markdown scan-note) ---

@@ -13,6 +13,7 @@ import { formatSarifReport } from './formatters/sarif.js';
 import type { ReportMeta } from './formatters/reportModel.js';
 import { computeExitCode, type FailMode } from './exitCode.js';
 import { messages } from './messages.js';
+import { readPackageVersion } from './version.js';
 
 interface CliOptions {
   json?: boolean;
@@ -28,6 +29,7 @@ const program = new Command();
 
 program
   .name('electron-audit')
+  .version(readPackageVersion(), '-v, --version', messages.optVersion)
   .description(messages.cliDescription)
   .argument('<target-path>', messages.argTargetPath)
   .option('--json', messages.optJson)
