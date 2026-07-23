@@ -66,6 +66,13 @@ exports[`corpus regression: synthetic-vuln > matches the approved findings snaps
     "severity": "high",
   },
   {
+    "confidence": "high",
+    "file": "node-prefix.js",
+    "line": 7,
+    "ruleId": "EA020",
+    "severity": "critical",
+  },
+  {
     "confidence": "heuristic",
     "file": "package.json",
     "line": 0,
