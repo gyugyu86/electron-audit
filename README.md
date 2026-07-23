@@ -149,18 +149,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: gyugyu86/electron-audit@v0.1.3
+      - uses: gyugyu86/electron-audit@v0.1.4
         with:
           path: .                  # project to scan
-          version: 0.1.3           # pin the scanner (default: latest)
+          version: 0.1.4           # pin the scanner (default: latest)
           # fail-on-findings: true # fail on high-confidence critical/high (default)
           # upload: true           # upload to code scanning (default)
 ```
 
-`@v0.1.3` is the recommended pin. For the strongest supply-chain guarantee, pin
+`@v0.1.4` is the recommended pin. For the strongest supply-chain guarantee, pin
 the commit SHA the tag resolves to instead — an author can move a tag, but not a
-commit SHA. Run `git rev-parse v0.1.3^{commit}` and use
-`uses: gyugyu86/electron-audit@<sha>  # v0.1.3`.
+commit SHA. Run `git rev-parse v0.1.4^{commit}` and use
+`uses: gyugyu86/electron-audit@<sha>  # v0.1.4`.
 
 **Pin the scanner too.** The `version:` input defaults to `latest`, so pinning
 only the action (by tag or SHA) does **not** pin the scanner — it will resolve

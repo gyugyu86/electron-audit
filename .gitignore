@@ -4,3 +4,4 @@ dist/
 .DS_Store
 coverage/
 tests/corpus/clean/.checkouts/
+RELEASE_NOTES_*.md
