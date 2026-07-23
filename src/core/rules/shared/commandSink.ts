@@ -55,6 +55,8 @@ function classifyBySourceAndMember(
   call: t.CallExpression,
   path: NodePath,
 ): CommandSinkKind | undefined {
+  // `source` is normalized by importBindings (the `node:` prefix stripped), so
+  // this bare name matches both `child_process` and `node:child_process`.
   if (source === 'child_process') {
     if (member === 'exec' || member === 'execSync') {
       return 'exec';

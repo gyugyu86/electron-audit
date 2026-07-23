@@ -20,6 +20,13 @@
   to parse, and it was silently skipped — a false negative if that file held
   a real issue. The JSX plugin is now selected by extension (`.ts`/`.mts`/
   `.cts` parse without it; `.tsx`/`.jsx`/`.js` keep it).
+- Built-in module imports written with the `node:` protocol prefix (e.g.
+  `import { exec } from 'node:child_process'`, `require('node:fs')`) are now
+  recognized the same as the un-prefixed spelling. The command-injection and
+  file-path-sink rules matched only the bare name before, so a modern
+  codebase using `node:` was missed. The prefix is normalized in one place
+  where import/require sources are collected, so all built-in matching is
+  consistent.
 
 ## 0.1.3
 

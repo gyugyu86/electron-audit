@@ -23,7 +23,9 @@ import { requireSource } from './importBindings.js';
 // chain across https.get callbacks is only caught at the in-scope
 // `info = JSON.parse(body)` hop, via source family A.
 
-const FS_MODULE_SOURCES = new Set(['fs', 'node:fs', 'fs/promises', 'node:fs/promises']);
+// Import sources arrive already normalized (the `node:` prefix stripped by
+// importBindings), so the bare names cover `node:fs` / `node:fs/promises` too.
+const FS_MODULE_SOURCES = new Set(['fs', 'fs/promises']);
 const FS_PATH_METHODS = new Set([
   'readFile',
   'readFileSync',

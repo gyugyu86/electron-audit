@@ -43,6 +43,16 @@ describe('EA020 command injection (exec/execSync/spawn shell:true)', () => {
   it('stays silent for spawn with a dynamic shell option but a fully static literal cmd', () => {
     expect(run('EA020/safe-spawn-shell-dynamic-literal').findings).toHaveLength(0);
   });
+
+  it('recognizes the node: builtin-protocol prefix (import and require) — not a silent miss', () => {
+    // Two files: `import { exec } from 'node:child_process'` and
+    // `require('node:child_process')`. Both must be caught exactly like the
+    // bare `child_process` spelling.
+    const result = run('EA020/node-prefix');
+    const ea020 = result.findings.filter((finding) => finding.ruleId === 'EA020');
+    expect(ea020).toHaveLength(2);
+    expect(ea020.every((finding) => finding.severity === 'critical' && finding.confidence === 'high')).toBe(true);
+  });
 });
 
 describe('EA021 command injection + privilege escalation (sudo-prompt)', () => {
