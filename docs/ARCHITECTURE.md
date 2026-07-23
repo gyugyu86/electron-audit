@@ -162,6 +162,22 @@ tests/
      자체는 건드리지 않아, 이 프리미티브는 EA020/021/022(명령 주입) 판정과
      격리된다. 증명 안 되면 `dynamic` 유지 = 종전대로 heuristic 발화(미탐 방지).
 
+이 5개와 별개로 **`collectImportBindings(ast)`**(`src/core/rules/shared/importBindings.ts`)
+가 모든 규칙의 import/require 인식 지점을 하나로 모은다 — EA020/021/022
+(`commandInjection.ts` 경유)·EA040·EA050·EA060이 전부 이걸 쓴다. `core/ast/`가
+아니라 `rules/shared/`에 있는 건 성격이 달라서다: 위 5개는 규칙이 **직접
+호출하는** AST 판정 프리미티브지만, 이건 파일당 한 번 **수집**만 해서 그 결과
+(`ImportBinding.source`/`importedName`)를 규칙에 건네는 쪽이다. 이 수집 지점에
+`normalizeModuleSource(source)`가 내장돼 있어, `node:child_process` 같은
+Node 빌트인-프로토콜 prefix를 벗겨 `child_process`로 통일한다(서브패스는
+보존 — `node:fs/promises` → `fs/promises`, `fs`로 뭉개지 않음). npm 패키지
+이름은 `:`를 못 담으므로 이 정규화가 서드파티 임포트를 건드릴 일은 없다.
+정규화는 수집 시점 한 곳(`collectEsmImport`/`requireSource`)에만 있고, 소비
+규칙은 항상 이미 정규화된 `source`를 읽는다 — 규칙마다 `node:` 유무를
+각자 처리하면 그중 하나만 놓쳐도 조용한 미탐이 되므로(과거 실제로
+`child_process`만 인식하고 `node:child_process`를 놓쳤던 버그), 여기 한 곳에
+모아 둔다.
+
 ## 규칙 ID 체계
 
 `EA0xx` 넘버링, 그룹별 범위:
@@ -282,7 +298,30 @@ BrowserWindow도 IPC도 없다). 그래서 강건성 요구는 자기 자신이 
 - `parser.ts`의 `parseSource`는 모든 파싱 실패(문법 오류, 깊은 중첩으로 인한
   스택 오버플로 `RangeError`, 바이너리/깨진 인코딩으로 인한 `SyntaxError`
   등)를 동일하게 `undefined`로 흡수한다 — 크래시 대신 항상 "이 파일은
-  스킵"으로 귀결되고, `RuleEngine`이 카운트만 남긴다.
+  스킵"으로 귀결되고, `RuleEngine`이 `filesUnparsable`로 카운트한다.
+- **`parseSource`는 문법 실패만 방어한다 — traverse 실패는 별도 계층이 막는다.**
+  구문은 유효하지만 babel의 지연(lazy) scope-crawl이 첫 `traverse()` 호출에서
+  던지는 경우(예: 같은 스코프 중복 선언 → `TypeError: Duplicate declaration`)가
+  있다 — `parse()`는 통과하므로 `parseSource`의 흡수를 거치지 않는다. 그래서
+  `RuleEngine.run()`이 파일마다 규칙 실행을 통째로 try/catch로 감싼다: 그 파일의
+  findings를 버퍼링하다 던지면 파일 전체를 폐기하고, 결정적으로 `parsedFiles`에도
+  넣지 않는다(그래야 `parsedFiles`만 순회하는 AggregateRule 쪽에서 같은 파일을
+  다시 만나 재크래시하지 않는다). 파일 단위로 감싸는 이유는 scope-crawl이 첫
+  traverse에서만 터지므로 규칙마다 감싸면 규칙 수만큼(현재 21개) 같은 실패를
+  반복해서 맞기 때문이다. 이렇게 스킵된 파일은 `filesUnparsable`과 별도인
+  `filesAnalysisErrors`로 카운트한다 — 실패 단계가 다르기 때문이며(파싱 vs 분석),
+  이 구분이 없으면 "파일이 왜 하나 덜 스캔됐는지"를 사람이 추적할 수 없다. 두
+  카운트 모두 조용히 삼키지 않고 터미널/JSON/Markdown 리포트에 노출되고,
+  `ELECTRON_AUDIT_DEBUG=1`이면 스킵된 파일별 에러 메시지가 stderr로 나온다.
+- `parseSource`의 파서 플러그인은 **확장자로 선택**한다: `.ts`/`.mts`/`.cts`는
+  `typescript`만(jsx 끔), 그 외(`.tsx`/`.jsx`/`.js`)는 `typescript`+`jsx`를 함께
+  켠다. 이건 휴리스틱이 아니라 TypeScript 언어 사양 그대로다 — `.ts`에서 `<T>`는
+  항상 제네릭이고 JSX일 수 없는데(JSX는 `.tsx`에서만 유효), 확장자 무관하게
+  jsx를 켜 두면 `.ts` 파일의 제네릭(`function f<T>()`, `const g = <T>(x: T) =>
+  x`)의 `<`를 JSX 여는 태그로 오인해 파싱이 실패한다 — 그 파일이 통째로
+  스킵되는 **조용한 미탐**이었다(실제 취약점을 담은 `.ts` 파일이 놓쳤을 수
+  있었다). `.js`는 React 프로젝트가 JSX를 순수 `.js`에 쓰는 관행이 있어 jsx를
+  계속 켜 둔다.
 - 대상 코드 처리에 정규식을 쓸 때는 백트래킹 폭발(ReDoS)이 없는 선형 패턴만
   사용한다.
 
