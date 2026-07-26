@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.5 - 2026-07-26
 
 ### Fixed
 
@@ -13,6 +13,14 @@
   is retried with each; the retry is gated to failures the parser reports as a
   missing decorator plugin, leaving ordinary syntax errors and oversized or
   deeply-nested input to fail once as before.
+
+### Note
+
+- Because this recovers files that were previously invisible, a project using
+  decorators may see findings it did not see before. If any of them are
+  high-confidence at critical/high severity, the default exit code will now
+  fail a build that used to pass. Those files were never scanned before — the
+  issues are not new, only newly visible.
 
 ## 0.1.4 - 2026-07-23
 
