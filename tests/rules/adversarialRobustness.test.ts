@@ -69,6 +69,25 @@ describe('pathological source content', () => {
     expect(result.findings).toHaveLength(1); // vulnerable.js still gets analyzed
   });
 
+  it('does not hang or crash when decorator syntax sits in an otherwise broken file', () => {
+    // A decorator makes the parser retry with each decorator dialect. If the
+    // file is ALSO malformed, every attempt fails — this locks in that the
+    // bounded retry ends in a plain skip (counted, not crashed, not looping)
+    // and that a normal file in the same project is still analyzed.
+    const dir = makeScratchDir();
+    fs.writeFileSync(path.join(dir, 'broken-decorated.ts'), '@Entity()\nexport class A { const ;;; ((( }\n');
+    fs.writeFileSync(
+      path.join(dir, 'vulnerable.js'),
+      "const { BrowserWindow } = require('electron');\nnew BrowserWindow({ webPreferences: { nodeIntegration: true } });\n",
+    );
+
+    const scan = scanProject({ rootDir: dir });
+    const result = new RuleEngine([EA001]).run(scan.files);
+
+    expect(result.filesUnparsable).toBe(1); // broken-decorated.ts, after both dialects failed
+    expect(result.findings).toHaveLength(1); // vulnerable.js unaffected
+  });
+
   it('does not crash on invalid UTF-8 / binary content saved with a .js extension', () => {
     const dir = makeScratchDir();
     // A JPEG-header-like byte sequence: not valid UTF-8, not valid JS.

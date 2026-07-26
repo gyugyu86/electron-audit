@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Files using decorators (`@Entity()`, `@Column()`, and the parameter
+  decorators Angular/NestJS/TypeORM dependency injection relies on) are now
+  parsed instead of being skipped whole. The parser enabled no decorator
+  plugin, so every such file failed to parse and no rule ever saw it — a
+  silent false negative. The two decorator dialects are mutually exclusive in
+  the parser and neither is a superset of the other, so a file that needs one
+  is retried with each; the retry is gated to failures the parser reports as a
+  missing decorator plugin, leaving ordinary syntax errors and oversized or
+  deeply-nested input to fail once as before.
+
 ## 0.1.4 - 2026-07-23
 
 ### Added
