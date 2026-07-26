@@ -47,6 +47,12 @@ const DECORATOR_FALLBACKS: readonly ParserPlugin[][] = [
   ['decorators', 'decoratorAutoAccessors'],
 ];
 
+// `decoratorAutoAccessors` belongs in this set, not just in the fallback plugin
+// lists above. A file whose only unsupported syntax is a bare `accessor x = 1`
+// — no decorator anywhere — fails with `missingPlugin: ["decoratorAutoAccessors"]`
+// on its own (measured), so without that name here the gate would not fire and
+// the file would be skipped whole. Removing it silently drops those files, which
+// is why a test asserts the bare-accessor case specifically.
 const DECORATOR_PLUGIN_NAMES = new Set(['decorators', 'decorators-legacy', 'decoratorAutoAccessors']);
 
 // The retry is gated to failures that are ACTUALLY a missing decorator plugin.
@@ -57,6 +63,13 @@ const DECORATOR_PLUGIN_NAMES = new Set(['decorators', 'decorators-legacy', 'deco
 // carries no `missingPlugin` at all) cannot be fixed by another dialect, and
 // retrying them would triple parse work on exactly the adversarial input this
 // tool is built to survive.
+//
+// Note this checks the CONTENTS of `missingPlugin`, not merely that the field
+// exists. Other unsupported proposals set it too — measured values include
+// `["pipelineOperator"]`, `["doExpressions"]` and `["throwExpressions"]` — and
+// no decorator dialect can parse those, so an existence check would spend two
+// extra parses per file to fail anyway. Checking the names keeps the retry to
+// the cases a retry can actually fix.
 function needsDecoratorPlugin(error: unknown): boolean {
   const missing = (error as { missingPlugin?: unknown } | null | undefined)?.missingPlugin;
   return (
