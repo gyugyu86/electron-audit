@@ -65,6 +65,32 @@ describe('EA021 command injection + privilege escalation (sudo-prompt)', () => {
   it('stays silent for sudo.exec() with a static literal command', () => {
     expect(run('EA021/safe-literal').findings).toHaveLength(0);
   });
+
+  // Privilege escalation is a severity fact (a root shell); whether the command
+  // string is statically provable is a confidence fact. They are separate
+  // fields, so an unprovable argument must lower the confidence WITHOUT
+  // discarding the fact that the call runs as root. Both shapes below are the
+  // ones real apps use — the command is assembled before being handed over.
+  it('reports a sudo.exec() with a variable command as EA021 critical/heuristic', () => {
+    const result = run('EA021/heuristic-variable-arg');
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]).toMatchObject({ ruleId: 'EA021', severity: 'critical', confidence: 'heuristic' });
+  });
+
+  it('reports a sudo.exec() with a joined command as EA021 critical/heuristic', () => {
+    const result = run('EA021/heuristic-joined-arg');
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]).toMatchObject({ ruleId: 'EA021', severity: 'critical', confidence: 'heuristic' });
+  });
+
+  // Guards the other direction: the sudo branch must not swallow ordinary
+  // command sinks. Without this, moving the sudo check ahead of the risk check
+  // could route every heuristic sink to EA021 and no test would notice.
+  it('keeps a non-sudo heuristic sink on EA022, not EA021', () => {
+    const result = run('EA022/heuristic');
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]).toMatchObject({ ruleId: 'EA022', severity: 'high', confidence: 'heuristic' });
+  });
 });
 
 describe('EA022 command injection heuristic (unresolvable variable)', () => {

@@ -64,19 +64,41 @@ export function findCommandInjectionSites(ast: File, filePath: string, fileConte
         return;
       }
 
+      // The sudo check comes BEFORE the risk check, and the order is
+      // load-bearing. Privilege escalation and argument shape answer different
+      // questions: "how bad is this if real" (severity — a root shell) versus
+      // "how sure are we it's real" (confidence — whether the command string is
+      // syntactically provable). Those are separate fields on Finding for
+      // exactly this reason. Ranking risk first let a confidence judgment
+      // delete a severity fact: a sudo call whose argument is a variable fell
+      // into the generic EA022 bucket, whose text never mentions privilege
+      // escalation at all, so the report lost the most dangerous thing about
+      // the call site.
+      //
+      // This is not a corner case. Real code assembles the command before
+      // handing it over — `sudo.exec(cmd, …)` and `sudo.exec(parts.join(' '),
+      // …)` are the common idioms, and both classify as heuristic, so the
+      // pre-existing fixtures (all inline template literals) were the only
+      // shape that ever reached EA021.
+      if (sink.kind === 'sudo-exec') {
+        sites.push({
+          ruleId: 'EA021',
+          severity: 'critical',
+          confidence: risk === 'heuristic' ? 'heuristic' : 'high',
+          file: filePath,
+          line,
+          target,
+        });
+        return;
+      }
+
       if (risk === 'heuristic') {
         sites.push({ ruleId: 'EA022', severity: 'high', confidence: 'heuristic', file: filePath, line, target });
         return;
       }
 
-      // risk === 'high-confidence': only escalate to EA021 when the sink is
-      // confidently resolved to a whitelisted sudo wrapper; an unresolved
-      // sink identity stays EA020 (escalation only when confident).
-      if (sink.kind === 'sudo-exec') {
-        sites.push({ ruleId: 'EA021', severity: 'critical', confidence: 'high', file: filePath, line, target });
-      } else {
-        sites.push({ ruleId: 'EA020', severity: 'critical', confidence: 'high', file: filePath, line, target });
-      }
+      // risk === 'high-confidence' on a non-sudo sink.
+      sites.push({ ruleId: 'EA020', severity: 'critical', confidence: 'high', file: filePath, line, target });
     },
   });
 

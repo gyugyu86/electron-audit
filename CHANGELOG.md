@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- A privileged command execution (`sudo-prompt` and its forks) whose command
+  string is assembled rather than written inline is now reported as EA021
+  (critical, heuristic) instead of falling into the generic EA022. Whether a
+  call runs as root is a severity fact; whether its argument is statically
+  provable is a confidence fact, and the two are separate fields — but the
+  order of the checks let the confidence judgment discard the severity one, so
+  the report stopped mentioning privilege escalation at all. `sudo.exec(cmd, …)`
+  and `sudo.exec(parts.join(' '), …)` are the common shapes in real code, so
+  this was the usual outcome rather than an edge case.
+- No new findings are produced: the classification of findings that were
+  already reported changes, and detection criteria are untouched. Exit codes
+  are unaffected in every mode — these findings are heuristic, so the default
+  gate still ignores them, and `--strict` already failed on them at their
+  previous severity.
+
 ## 0.1.5 - 2026-07-26
 
 ### Fixed
