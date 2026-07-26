@@ -11,8 +11,8 @@
   silent false negative. The two decorator dialects are mutually exclusive in
   the parser and neither is a superset of the other, so a file that needs one
   is retried with each; the retry is gated to failures the parser reports as a
-  missing decorator plugin, leaving ordinary syntax errors and oversized or
-  deeply-nested input to fail once as before.
+  missing decorator plugin, leaving ordinary syntax errors and deeply-nested
+  input to fail once as before.
 
 ### Note
 
@@ -20,7 +20,9 @@
   decorators may see findings it did not see before. If any of them are
   high-confidence at critical/high severity, the default exit code will now
   fail a build that used to pass. Those files were never scanned before — the
-  issues are not new, only newly visible.
+  issues are not new, only newly visible. If new findings land mid-sprint,
+  `--no-fail` lets CI stay green while you triage them — the findings still
+  appear in the report.
 
 ## 0.1.4 - 2026-07-23
 
