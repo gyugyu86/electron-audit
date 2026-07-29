@@ -48,6 +48,39 @@ describe('oversized file handling', () => {
     expect(scan.skippedOversized).toBe(0);
     expect(scan.files).toHaveLength(1);
   });
+
+  // The clean-corpus gate leans on this case specifically. The only `.cjs` in
+  // the vendored corpus is a multi-megabyte bundled package-manager binary,
+  // and adding `.cjs` to the scanned extensions left the gate at zero only
+  // because the size cap drops that file before anything reads it. That was a
+  // measurement, not a guarantee: raise `maxFileSizeBytes` (or its default)
+  // and the gate would start failing for a reason nothing in the repo
+  // explains, so the behavior is pinned here for a dual-module extension too.
+  //
+  // The oversized file's CONTENT is deliberately unparsable, and that is what
+  // separates the two skip paths. Taken by the size filter, it never reaches
+  // the parser and `filesUnparsable` stays 0; if the size filter ever stops
+  // taking it, the same file fails to parse and `filesUnparsable` becomes 1.
+  // The pair of assertions therefore names WHICH path accounted for the file,
+  // instead of merely observing that it produced no findings — both paths
+  // produce none.
+  it('skips an oversized .cjs through the size filter, not as a parse failure', () => {
+    const dir = makeScratchDir();
+    fs.writeFileSync(path.join(dir, 'bundled.cjs'), '\0not js at all {{{'.repeat(200));
+    fs.writeFileSync(path.join(dir, 'normal.cjs'), 'console.log(1);');
+
+    const scan = scanProject({ rootDir: dir, maxFileSizeBytes: 1000 });
+    const result = new RuleEngine([EA001]).run(scan.files, scan.project);
+
+    // Size path: counted here, and never handed to the engine at all.
+    expect(scan.skippedOversized).toBe(1);
+    expect(scan.files.map((file) => path.basename(file.path))).toEqual(['normal.cjs']);
+    // Parse path: untouched, which is only true because the file never
+    // arrived. Unparsable content that reached the parser would show up here.
+    expect(result.filesScanned).toBe(1);
+    expect(result.filesUnparsable).toBe(0);
+    expect(result.filesAnalysisErrors).toBe(0);
+  });
 });
 
 describe('pathological source content', () => {
