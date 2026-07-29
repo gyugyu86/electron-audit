@@ -1,5 +1,33 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- `.mjs`, `.cjs`, `.mts` and `.cts` files are now scanned. The file collector
+  accepted only `.js`/`.ts`/`.jsx`/`.tsx`, so every other module extension was
+  dropped before it ever reached the parser — invisible in the report's
+  unparsable and analysis-error counts alike, because a file that is never
+  opened cannot fail to parse. Electron projects keep build, packaging and
+  code-signing scripts in exactly those files, and assembling a shell command
+  from an interpolated path is common there, so this hid real findings behind
+  a silent zero. They are the same JavaScript and TypeScript the analyzer
+  already handles — only the module system differs — so no rule needed
+  changing; `.mts`/`.cts` parse as TypeScript with JSX off, matching `.ts`.
+
+### Note
+
+- Unlike 0.1.6, this adds files to the scan rather than reclassifying findings
+  that were already reported, so a project containing any of these extensions
+  can see findings it did not see before, and a build that passed under the
+  default exit code can now fail. Those files were never scanned before — the
+  issues are not new, only newly visible. If new findings land mid-sprint,
+  `--no-fail` lets CI stay green while you triage them; the findings still
+  appear in the report.
+- `.vue` and `.svelte` remain out of scope. Their JavaScript lives inside a
+  `<script>` block that has to be extracted before anything can parse it,
+  which is a separate feature rather than another extension.
+
 ## 0.1.6 - 2026-07-29
 
 ### Fixed
