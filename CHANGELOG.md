@@ -1,19 +1,20 @@
 # Changelog
 
-## Unreleased
+## 0.1.7 - 2026-07-30
 
 ### Fixed
 
 - `.mjs`, `.cjs`, `.mts` and `.cts` files are now scanned. The file collector
   accepted only `.js`/`.ts`/`.jsx`/`.tsx`, so every other module extension was
-  dropped before it ever reached the parser — invisible in the report's
-  unparsable and analysis-error counts alike, because a file that is never
-  opened cannot fail to parse. Electron projects keep build, packaging and
-  code-signing scripts in exactly those files, and assembling a shell command
-  from an interpolated path is common there, so this hid real findings behind
-  a silent zero. They are the same JavaScript and TypeScript the analyzer
-  already handles — only the module system differs — so no rule needed
-  changing; `.mts`/`.cts` parse as TypeScript with JSX off, matching `.ts`.
+  dropped before it ever reached the parser — **no rule has ever seen those
+  files** — and the omission was invisible in the report's unparsable and
+  analysis-error counts alike, because a file that is never opened cannot fail
+  to parse. Electron projects keep build, packaging and code-signing scripts in
+  exactly those files, and assembling a shell command from an interpolated path
+  is common there, so this hid real findings behind a silent zero. They are the
+  same JavaScript and TypeScript the analyzer already handles — only the module
+  system differs — so no rule needed changing; `.mts`/`.cts` parse as
+  TypeScript with JSX off, matching `.ts`.
 
 ### Note
 
@@ -24,6 +25,15 @@
   issues are not new, only newly visible. If new findings land mid-sprint,
   `--no-fail` lets CI stay green while you triage them; the findings still
   appear in the report.
+- **Expect build tooling to be where they show up.** More than half of the
+  newly collected files are build, packaging and signing scripts rather than
+  application code, and that is where a shell command assembled from an
+  interpolated path is most common — so a new critical/high finding is more
+  likely to point at a signing script than at your app's runtime. The rule is
+  correct to fire; assembling a shell command that way is a real risk. But the
+  exposure differs in kind from runtime code — it sits in the build and release
+  path, and the input is controlled by the build environment rather than an end
+  user — and the report does not yet make that distinction.
 - `.vue` and `.svelte` remain out of scope. Their JavaScript lives inside a
   `<script>` block that has to be extracted before anything can parse it,
   which is a separate feature rather than another extension.
