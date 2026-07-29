@@ -25,7 +25,28 @@ export interface ScanResult {
 }
 
 const DEFAULT_MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
-const INCLUDED_EXTENSIONS = new Set(['.js', '.ts', '.jsx', '.tsx']);
+// `.mjs`/`.cjs`/`.mts`/`.cts` are the same JavaScript and TypeScript this tool
+// already analyzes — only the module system differs — and real Electron
+// projects keep build, packaging and code-signing scripts in exactly those
+// files, which is where shelling out with an interpolated path is most common.
+// Their absence here dropped them BEFORE the parser, so they appeared in no
+// count at all: not `filesUnparsable`, not `filesAnalysisErrors`, just a
+// smaller number of files scanned. A silent zero is the worst failure mode a
+// scanner has, so this set must cover every extension the parser can handle.
+//
+// `.vue`/`.svelte` stay out deliberately. Their JS lives inside a `<script>`
+// block that has to be extracted before anything can parse it — a separate
+// feature, not another entry in this set.
+const INCLUDED_EXTENSIONS = new Set([
+  '.js',
+  '.ts',
+  '.jsx',
+  '.tsx',
+  '.mjs',
+  '.cjs',
+  '.mts',
+  '.cts',
+]);
 // HTML is collected separately and read ONLY to extract <meta> CSP — it is
 // never JS-parsed or run through the node rules (HTML has no JS sinks).
 const HTML_EXTENSIONS = new Set(['.html', '.htm']);
@@ -100,7 +121,7 @@ interface WalkCounters {
 }
 
 interface CollectedFiles {
-  source: string[]; // .js/.ts/.jsx/.tsx — JS-parsed and run through node rules
+  source: string[]; // every INCLUDED_EXTENSIONS file — JS-parsed and run through node rules
   html: string[]; // .html/.htm — read only for <meta> CSP extraction
 }
 
