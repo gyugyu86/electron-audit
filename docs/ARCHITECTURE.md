@@ -66,6 +66,19 @@ tests/
     분류(`commandInjection.ts`)해 인자 위험도·싱크 종류에 따라 셋 중 하나의
     ruleId를 매긴다. `rules/EA0xx.ts`는 그 결과를 자기 ruleId로 필터링해 자신의
     whyDangerous/recommendation만 붙이는 얇은 래퍼로 유지한다.
+    - **그 분류에서 sudo 판정이 risk 판정보다 먼저 온다. 순서가 계약의 일부다.**
+      권한 상승 여부는 **severity 사실**(root 셸이면 얼마나 나쁜가)이고, 인자가
+      템플릿이냐 조립된 변수냐는 **confidence 사실**(구문만으로 단정할 수 있는가)
+      이다. `Finding`이 두 필드를 분리해 둔 이유가 그것인데(아래 엔진 계약 참조),
+      risk를 먼저 보면 confidence 판단이 severity 정보를 **삭제**한다 — sudo
+      호출이 일반 EA022로 떨어지고 그 문구에는 권한 상승 언급이 없어, 콜사이트의
+      가장 위험한 성질이 리포트에서 사라진다. 그래서 `sudo-exec` 싱크는 risk와
+      무관하게 EA021로 가고, risk는 confidence만 정한다: **`sudo-exec` +
+      heuristic → EA021 critical / heuristic**(두 축이 각자 제 값을 가진 조합).
+    - 이건 이론적 코너가 아니다. 실전 권한 상승 호출은 명령을 먼저 조립해
+      넘기는 관용구(`sudo.exec(cmd, …)`, `sudo.exec(parts.join(' '), …)`)가
+      흔하고 둘 다 heuristic으로 분류되므로, 종전 순서에서 EA021은 인라인 템플릿
+      리터럴로만 도달 가능했다 — 픽스처가 전부 그 형태여서 오래 드러나지 않았다.
   - **`src/core/ast/`** — "여러 규칙이 **각자 조회**하는 공용 프리미티브"(팬아웃
     아님, 단순 헬퍼). 예: `isStaticSafeLiteral`, `schemeGuard`. 한 규칙만 지금
     쓰더라도 성격상 여러 규칙이 참조할 헬퍼면 여기에 둔다(그래서 EA040 전용인
@@ -82,7 +95,12 @@ tests/
 - **`Finding`**: `severity`(critical/high/medium/low/info)와 별개로
   `confidence: 'high' | 'heuristic'` 필드를 갖는다. 데이터플로우 기반 규칙
   (EA022/050 등)은 오탐이 필연이므로, 리포트에서 확실한 탐지와 휴리스틱
-  탐지를 반드시 구분해서 보여준다. 필드명(`ruleId, severity, confidence,
+  탐지를 반드시 구분해서 보여준다. **두 필드는 서로 다른 질문의 답이고 한쪽이
+  다른 쪽을 대체하지 않는다** — severity는 "사실이면 얼마나 나쁜가", confidence는
+  "사실일 가능성이 얼마나 확실한가"다. 그래서 `critical` + `heuristic` 같은
+  조합이 정당하며, 분류 로직이 confidence 판단으로 severity 정보를 지워서는
+  안 된다(위 C그룹 팬아웃의 sudo 분기 순서가 이 원칙의 사례다).
+  필드명(`ruleId, severity, confidence,
   file, line, target, whyDangerous, recommendation` 등)은 물론, 사용자에게
   노출되는 문자열 "값"(whyDangerous/recommendation, CLI usage/help,
   포맷터 라벨, config 오류 메시지)도 **전부 영문**이다 — 공개 repo·npm 패키지라
@@ -322,6 +340,32 @@ BrowserWindow도 IPC도 없다). 그래서 강건성 요구는 자기 자신이 
   스킵되는 **조용한 미탐**이었다(실제 취약점을 담은 `.ts` 파일이 놓쳤을 수
   있었다). `.js`는 React 프로젝트가 JSX를 순수 `.js`에 쓰는 관행이 있어 jsx를
   계속 켜 둔다.
+- **데코레이터는 확장자로 갈리지 않아 폴백으로 처리한다.** 위 jsx 분기와 대비되는
+  지점이다: jsx는 `.ts`(불가)/`.tsx`(가능)가 언어 사양으로 깨끗이 갈렸지만,
+  데코레이터의 두 방언은 **둘 다 평범한 `.ts`에 상주**하고 파서에서 상호 배타이며
+  (`Cannot use the decorators and decorators-legacy plugin together`) **어느 쪽도
+  상위집합이 아니다** — 파라미터 데코레이터(`constructor(@Inject() x)`)는 legacy
+  전용, `export` 뒤에 붙는 데코레이터(`export @dec class`)는 standard 전용이다.
+  그래서 확장자로 고를 수 없고, 한쪽으로 확정하면 다른 방언 파일이 통째로
+  스킵된다. `parseSource`는 1차 시도가 실패하면 두 방언을 순서대로 재시도한다
+  (legacy 우선, 각 단에 `decoratorAutoAccessors` 동승).
+- **재시도 게이트는 `missingPlugin`의 내용을 본다.** babel이 에러에 실어 주는
+  구조화 필드라 에러 문구에 의존하지 않는다. 존재 여부가 아니라 **내용**을 보는
+  이유는, `pipelineOperator`·`doExpressions` 같은 다른 미지원 제안도 이 필드를
+  설정하는데 어느 데코레이터 방언으로도 고칠 수 없어 파싱 2회가 순수 낭비이기
+  때문이다. `DECORATOR_PLUGIN_NAMES` 집합에 `decoratorAutoAccessors`가 들어 있는
+  것도 의도적이다 — 데코레이터가 하나도 없는 순수 `accessor x = 1` 파일은 그
+  이름 단독으로 실패를 보고하므로, 집합에서 빼면 그 파일이 조용히 스킵된다.
+  일반 문법 오류·바이너리·깊은 중첩(`RangeError`)은 이 필드가 없어 종전처럼
+  한 번 실패하고 끝난다.
+- **폴백 순서(legacy 우선)가 결과를 바꾸지 않는다는 전제는 "규칙이 Decorator
+  노드를 참조하지 않는다"에 의존한다.** 두 방언은 데코레이터 노드의 모양만 다르게
+  만들고, 규칙이 읽는 호출·import·클래스 노드는 동일하다. D그룹(IPC)이나 프레임
+  워크 규칙이 나중에 데코레이터를 읽기 시작하면 이 전제가 깨지고 순서가 조용히
+  결과를 바꾼다 — 그때 순서를 재검토해야 한다.
+- **회귀 표면은 논리적으로 공집합이다.** 1차 시도가 종전과 완전히 같은 플러그인
+  세트이므로, 기존에 파싱되던 파일은 애초에 폴백에 도달하지 못한다. 변경은
+  단조(monotone)로, 종전에 실패하던 파일만 새로 파싱될 수 있다.
 - 대상 코드 처리에 정규식을 쓸 때는 백트래킹 폭발(ReDoS)이 없는 선형 패턴만
   사용한다.
 
