@@ -101,6 +101,26 @@ electron-audit <path> --sarif      # SARIF 2.1.0 (GitHub code scanning)
 electron-audit <path> --config <file>   # enable/disable rules, override severity
 ```
 
+### What gets scanned
+
+Files are picked by extension. Source files — parsed and run through every
+rule:
+
+```
+.js  .jsx  .mjs  .cjs      .ts  .tsx  .mts  .cts
+```
+
+`.html` / `.htm` are read for one purpose only: extracting the CSP string from
+`<meta http-equiv="Content-Security-Policy">`. They are never JS-parsed.
+`node_modules`, `dist`, `build` and `out` are skipped, as are files above 2MB.
+
+**Single-file components (`.vue`, `.svelte`) are not scanned.** Their
+JavaScript lives inside a `<script>` block that has to be extracted before
+anything can parse it, which this tool does not do yet. If your renderer is
+written in SFCs, the renderer is outside the analysis — the report will
+complete normally and simply say it found fewer files, so check the scanned
+file count against what you expect.
+
 ### Confidence: certain vs heuristic
 
 Every finding carries a confidence *separate* from severity. No `[heuristic]`
@@ -225,6 +245,10 @@ not a weakness; it's the condition for trust.
 - **The version baseline is hardcoded** (EA062): for offline/CI reproducibility,
   the "latest Electron" baseline lives in the source, so it goes stale over time
   (hence heuristic). Updating it is a one-line constant change.
+- **Single-file components are not scanned at all** (`.vue`, `.svelte`) — see
+  [What gets scanned](#what-gets-scanned). Unlike the misses above this one is
+  silent: the files are dropped before the parser, so they are counted as
+  neither scanned nor unparsable.
 - **No runtime behavior** — the general limit of static analysis.
 
 Deferred rules: **EA043** (will-navigate/webview — needs full HTML parsing) and

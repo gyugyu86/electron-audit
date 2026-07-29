@@ -93,6 +93,25 @@ electron-audit <경로> --sarif      # SARIF 2.1.0 (GitHub 코드 스캐닝)
 electron-audit <경로> --config <설정파일>   # 규칙 on/off·심각도 오버라이드
 ```
 
+### 무엇을 스캔하는가
+
+대상 파일은 확장자로 정해집니다. 소스 파일 — 파싱해서 모든 규칙을 태웁니다:
+
+```
+.js  .jsx  .mjs  .cjs      .ts  .tsx  .mts  .cts
+```
+
+`.html` / `.htm`은 딱 한 가지 용도로만 읽습니다:
+`<meta http-equiv="Content-Security-Policy">`에서 CSP 값을 뽑는 것. JS로 파싱하지는
+않습니다. `node_modules`·`dist`·`build`·`out` 디렉토리와 2MB를 넘는 파일은
+건너뜁니다.
+
+**SFC(single-file component, `.vue`·`.svelte`)는 스캔하지 않습니다.** 그 안의
+JavaScript는 `<script>` 블록을 먼저 추출해야 파싱할 수 있는데, 이 도구는 아직 그걸
+하지 않습니다. 렌더러를 SFC로 작성한 프로젝트라면 **렌더러가 통째로 분석 밖**이라는
+뜻입니다 — 리포트는 정상 완료되고 그저 수집 파일 수가 적게 나올 뿐이므로, 스캔된
+파일 수가 예상과 맞는지 확인하세요.
+
 ### confidence: 확실 vs 휴리스틱
 
 모든 탐지에는 심각도와 **별개로** confidence가 붙습니다. `[heuristic]` 태그가
@@ -207,6 +226,9 @@ fork에서 올라온 PR에서는 GitHub이 `security-events: write`를 부여하
   넣는 XSS 벡터, 동적으로 병합/스프레드된 `webPreferences`는 heuristic으로 과소보고.
 - **버전 기준은 하드코딩**(EA062): 오프라인·CI 재현성을 위해 "최신 Electron" 기준값이
   코드에 박혀 있어 시간이 지나면 낡습니다(그래서 heuristic). 갱신은 소스 상수 한 줄.
+- **SFC(`.vue`·`.svelte`)는 아예 스캔되지 않습니다** — [무엇을 스캔하는가](#무엇을-스캔하는가)
+  참조. 위 미탐들과 달리 이건 조용합니다: 파서에 닿기 전에 걸러지므로 스캔된 것으로도,
+  파싱 실패로도 잡히지 않습니다.
 - **런타임 동작은 못 봅니다**: 정적 분석의 일반 한계.
 
 보류 규칙: **EA043**(will-navigate/webview — 완전 HTML 파싱 필요),
