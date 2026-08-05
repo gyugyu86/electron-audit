@@ -25,7 +25,12 @@ export function formatTerminalReport(findings: Finding[]): string {
   const lines: string[] = [];
 
   for (const group of model.groups) {
-    lines.push(chalk.underline(`${group.file}:${group.line}`));
+    // The role belongs on the location header, not on each finding: a group is
+    // one file:line, so every finding under it shares the same file and would
+    // otherwise repeat the same tag. Absent for HTML/manifest anchors, which
+    // renders as nothing rather than an empty pair of brackets.
+    const roleTag = messages.roleTag(group.findings[0]?.role);
+    lines.push(chalk.underline(`${group.file}:${group.line}`) + (roleTag ? ` ${chalk.dim(roleTag)}` : ''));
     for (const finding of group.findings) {
       lines.push(...renderFinding(finding));
     }

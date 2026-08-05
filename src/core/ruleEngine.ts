@@ -88,11 +88,33 @@ export class RuleEngine {
     }
 
     return {
-      findings,
+      findings: attachRoles(findings, files),
       filesScanned: files.length,
       filesUnparsable,
       filesAnalysisErrors: analysisErrors.length,
       analysisErrors,
     };
   }
+}
+
+// Stamps each finding with the role of the file it points at, in ONE place
+// after both passes, rather than making every rule carry the role through.
+// A rule's job is to decide whether something is dangerous; which kind of file
+// it happened to be in is a fact about the scan, and the engine is where
+// findings and scanned files meet.
+//
+// The lookup is by path and may legitimately miss: aggregate rules anchor
+// findings on files that were never ScannedFiles — `.html` (collected only for
+// its <meta> CSP) and package.json (the manifest behind EA060/EA061/EA062).
+// Those keep no role rather than being given a guessed one.
+//
+// Descriptive only. Nothing downstream branches on it: severity, confidence,
+// and the exit-code computation are untouched, so this cannot change whether a
+// finding is reported or whether a build passes.
+function attachRoles(findings: Finding[], files: ScannedFile[]): Finding[] {
+  const roleByPath = new Map(files.map((file) => [file.path, file.role]));
+  return findings.map((finding) => {
+    const role = roleByPath.get(finding.file);
+    return role === undefined ? finding : { ...finding, role };
+  });
 }

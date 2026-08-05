@@ -12,6 +12,17 @@ export interface Finding {
   confidence: Confidence;
   file: string;
   line: number;
+  // What kind of file this finding sits in. OPTIONAL, and deliberately so:
+  // not every finding is anchored to a scanned source file. The CSP rules
+  // report against `.html` (collected only for its <meta> tag, never a
+  // ScannedFile) and EA060/EA061/EA062 report against package.json (a
+  // manifest, not source), so there is no role to attach — measured at 7.6%
+  // of findings across the corpora. Inventing one for those would be
+  // fabricating a fact, so the field is simply absent instead.
+  //
+  // Purely descriptive. It is not read by any rule and does not affect
+  // severity, confidence, or the exit code.
+  role?: FileRole;
   target: string;
   whyDangerous: string;
   recommendation: string;

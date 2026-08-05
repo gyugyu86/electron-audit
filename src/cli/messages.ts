@@ -7,7 +7,18 @@
 //
 // This module holds CLI-layer strings only. `core` owns its own messages (see
 // core/config.ts) so it stays independent of the CLI and remains reusable from
-// a GUI or GitHub Action — do not import this module from core.
+// a GUI or GitHub Action — do not import this module from core. (Importing a
+// core TYPE here is the allowed direction and adds no runtime coupling.)
+import type { FileRole } from '../core/types.js';
+// Display text per file role. Typed as a total Record so adding a role to
+// `FileRole` fails the build here until it gets a label — a new role can never
+// silently render as an empty tag.
+const ROLE_LABELS: Record<FileRole, string> = {
+  main: 'main',
+  preload: 'preload',
+  renderer: 'renderer',
+};
+
 export const messages = {
   // --- commander usage / help (cli/index.ts) ---
   cliDescription: 'Statically analyze a local Electron project for known security anti-patterns.',
@@ -33,6 +44,9 @@ export const messages = {
   // --- finding labels (shared by both formatters; each applies its own styling) ---
   whyDangerousLabel: "Why it's dangerous:",
   recommendedFixLabel: 'Recommended fix:',
+  // Empty string when the finding has no role (HTML and manifest anchors), so
+  // callers can concatenate without a conditional at every call site.
+  roleTag: (role: FileRole | undefined): string => (role ? `[${ROLE_LABELS[role]}]` : ''),
 
   // --- terminal report (cli/formatters/terminal.ts) ---
   terminalNoFindings: 'No vulnerabilities found.',

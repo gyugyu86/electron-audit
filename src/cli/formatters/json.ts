@@ -27,6 +27,12 @@ export function formatJsonReport(findings: Finding[], meta: ReportMeta): string 
       confidence: finding.confidence,
       file: relativize(meta.rootDir, finding.file),
       line: finding.line,
+      // Sits with the location it is derived from. The key is OMITTED (not
+      // null) when the finding has no role, so a consumer can test presence
+      // rather than distinguish "absent" from "explicitly nothing". Adding an
+      // optional key is additive, so schemaVersion stays 1 — it is bumped only
+      // on a breaking field change.
+      ...(finding.role ? { role: finding.role } : {}),
       target: finding.target,
       whyDangerous: finding.whyDangerous,
       recommendation: finding.recommendation,

@@ -50,10 +50,14 @@ export function formatMarkdownReport(findings: Finding[], meta: ReportMeta): str
 function renderFinding(finding: Finding, rootDir: string): string[] {
   const heuristic = finding.confidence === 'heuristic' ? ' `[heuristic]`' : '';
   const location = `${relativize(rootDir, finding.file)}:${finding.line}`;
+  // Markdown lists findings linearly rather than grouped by location, so the
+  // role rides on each finding's own location line. Empty for HTML/manifest
+  // anchors, which have no role to report.
+  const roleTag = messages.roleTag(finding.role);
   return [
     `### ${finding.ruleId} — ${finding.target}${heuristic}`,
     '',
-    `\`${location}\``,
+    `\`${location}\`${roleTag ? ` \`${roleTag}\`` : ''}`,
     '',
     `**${messages.whyDangerousLabel}** ${finding.whyDangerous}`,
     '',

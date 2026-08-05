@@ -77,8 +77,15 @@ export function formatSarifReport(
         },
       },
     ],
+    // `result.properties` is a SARIF propertyBag, whose schema declares
+    // `additionalProperties: true` — arbitrary members are allowed, which is
+    // why `confidence` already lives here. `role` joins it on the same terms:
+    // carried for machine consumers, omitted when the finding has none.
+    // Nothing is added to `message.text`; changing existing message strings
+    // could disturb how code scanning matches an alert to its previous state.
     properties: {
       confidence: finding.confidence,
+      ...(finding.role ? { role: finding.role } : {}),
       'security-severity': securitySeverity(finding.severity, finding.confidence),
     },
   }));
