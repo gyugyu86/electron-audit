@@ -17,6 +17,7 @@ const ROLE_LABELS: Record<FileRole, string> = {
   main: 'main',
   preload: 'preload',
   renderer: 'renderer',
+  build: 'build',
 };
 
 export const messages = {

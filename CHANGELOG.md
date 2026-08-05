@@ -1,5 +1,41 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Every finding now reports the kind of file it sits in — `main`, `preload`,
+  `renderer` or `build` — in all four outputs. The scanner had always
+  classified files and nothing read the result; `build` is new, and marks
+  build, packaging and code-signing tooling.
+- The point is that a finding in a signing script and a finding in the running
+  app read differently. The first sits in the build and release path, with its
+  input controlled by the build environment; the second is exposed to whoever
+  uses the app. 0.1.7 started surfacing the first kind in numbers and left you
+  to tell them apart by reading paths.
+
+### Note
+
+- **Nothing about how findings are judged changes.** Severity, confidence and
+  the exit code are exactly as before — this adds a label, not a verdict. A
+  build-time finding still fails the build under the default gate if it is
+  high-confidence at critical/high severity, because a shell command assembled
+  from an interpolated path is a real risk wherever it runs. Verified across
+  eight projects in all three exit modes, with identical exit codes and
+  identical finding counts.
+- The classification is deliberately conservative, and never overrides a fact
+  about how the app runs: a file the manifest names as the entry point stays
+  `main`, and a build-looking name inside an application source tree stays
+  application code. Unrecognized build tooling keeps whatever role it had,
+  which loses context but states nothing false.
+- **This does change the output format.** JSON findings gain an optional
+  `role` key, and SARIF results carry `role` in the result property bag
+  alongside `confidence`. The key is omitted, not null, when a finding has no
+  role — findings anchored on `.html` (the CSP rules) or on package.json
+  (EA060/EA061/EA062) are not tied to a scanned source file and get none.
+  `schemaVersion` stays `1`: adding an optional key is not a breaking change,
+  and existing consumers that read known keys are unaffected.
+
 ## 0.1.7 - 2026-07-30
 
 ### Fixed

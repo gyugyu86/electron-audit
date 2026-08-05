@@ -4,7 +4,7 @@ export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 
 export type Confidence = 'high' | 'heuristic';
 
-export type FileRole = 'main' | 'preload' | 'renderer';
+export type FileRole = 'main' | 'preload' | 'renderer' | 'build';
 
 export interface Finding {
   ruleId: string;

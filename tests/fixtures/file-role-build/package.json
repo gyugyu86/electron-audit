@@ -1,0 +1,11 @@
+{
+  "name": "file-role-build-fixture",
+  "version": "1.0.0",
+  "main": "src/main/index.js",
+  "scripts": {
+    "sign": "node scripts/sign-release.mjs"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0"
+  }
+}
