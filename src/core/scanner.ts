@@ -68,9 +68,13 @@ export function scanProject(options: ScanOptions): ScanResult {
       continue;
     }
 
-    const draft: ScannedFile = { path: filePath, content: readFileSync(filePath, 'utf8'), role: 'renderer' };
+    const draft: ScannedFile = { path: filePath, content: readFileSync(filePath, 'utf8') };
     const classification = classifyFileRole({ file: draft, packageJsonMainPath });
-    files.push({ ...draft, role: classification.role });
+    // The role is kept only when the classifier was sure of it. Its
+    // unsure answer is always `renderer` — the fallback, not a finding about
+    // the file — so storing it would put a guess where the rest of the code
+    // expects a fact.
+    files.push(classification.confident ? { ...draft, role: classification.role } : draft);
   }
 
   const htmlCspSites: HtmlCspSite[] = [];

@@ -103,10 +103,13 @@ export class RuleEngine {
 // it happened to be in is a fact about the scan, and the engine is where
 // findings and scanned files meet.
 //
-// The lookup is by path and may legitimately miss: aggregate rules anchor
-// findings on files that were never ScannedFiles — `.html` (collected only for
-// its <meta> CSP) and package.json (the manifest behind EA060/EA061/EA062).
-// Those keep no role rather than being given a guessed one.
+// A finding legitimately ends up with no role for either of two reasons, and
+// both are left as an absent field rather than filled with a guess:
+//   - the file was never a ScannedFile at all — `.html` (collected only for
+//     its <meta> CSP) and package.json (the manifest behind EA060/EA061/
+//     EA062) are anchors for aggregate rules, not source;
+//   - the file was scanned but the classifier could not determine its role,
+//     so the scanner stored none (see fileRoleClassifier).
 //
 // Descriptive only. Nothing downstream branches on it: severity, confidence,
 // and the exit-code computation are untouched, so this cannot change whether a

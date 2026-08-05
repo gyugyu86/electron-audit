@@ -31,7 +31,15 @@ export interface Finding {
 export interface ScannedFile {
   path: string;
   content: string;
-  role: FileRole;
+  // Set ONLY when the classifier actually determined the role. Absent means
+  // "could not tell", which is the honest majority case: the classifier's
+  // fallback is `renderer`, so a filled-in `renderer` used to mean nothing
+  // more than "none of the checks matched". Carrying that as a value made it
+  // indistinguishable from a real answer.
+  //
+  // Same meaning as `Finding.role`, deliberately: role present ⟺ role known,
+  // everywhere in the codebase.
+  role?: FileRole;
 }
 
 // Project-wide facts a rule may need beyond a single file. Populated once by

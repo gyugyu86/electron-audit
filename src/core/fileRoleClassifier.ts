@@ -70,9 +70,25 @@ function isBuildFile(filePath: string): boolean {
 // Priority order: package.json's `main` field -> webPreferences.preload
 // path(s) found elsewhere in the project -> build tooling -> filename
 // heuristic (main.ts, preload.ts, renderer.ts, ...). When none of these
-// confidently match, default to 'renderer' with `confident: false` — callers
-// should lower `confidence` on any resulting Finding for files classified
-// this way.
+// match, the answer is 'renderer' with `confident: false`.
+//
+// READ THAT FALLBACK CAREFULLY: `confident: false` never means "probably a
+// renderer". It means none of the checks matched, and 'renderer' is only
+// there because the field had to hold something. Measured across the
+// corpora, every single `renderer` this function returns is that fallback —
+// it has no path that concludes "renderer" on evidence — and 55 of those
+// files have `main/` or `preload/` in their own path.
+//
+// So the caller drops the role entirely rather than reporting it. An earlier
+// version of this comment asked callers to lower the resulting Finding's
+// `confidence` instead; that was the wrong lever. `confidence` states how
+// sure the rule is that the code is dangerous, which has nothing to do with
+// how sure we are about which process the file runs in — conflating them
+// would have let a path heuristic weaken a real security verdict. Staying
+// quiet costs a reader some context; saying "renderer" when we do not know
+// tells them something false, and on 55 files it contradicts the path
+// printed on the same line. Severity, confidence and the exit code are
+// untouched by any of this.
 //
 // `build` sits BELOW main and preload on purpose. A file the manifest names as
 // the entry point is the main process no matter where it lives, and the same

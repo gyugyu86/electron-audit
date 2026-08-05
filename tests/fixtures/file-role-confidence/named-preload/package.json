@@ -1,0 +1,6 @@
+{
+  "name": "named-preload-fixture",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": { "electron": "^31.0.0" }
+}

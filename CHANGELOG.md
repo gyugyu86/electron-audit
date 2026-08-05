@@ -4,15 +4,21 @@
 
 ### Added
 
-- Every finding now reports the kind of file it sits in — `main`, `preload`,
-  `renderer` or `build` — in all four outputs. The scanner had always
-  classified files and nothing read the result; `build` is new, and marks
-  build, packaging and code-signing tooling.
+- A finding can now report the kind of file it sits in — `main`, `preload` or
+  the new `build`, which marks build, packaging and code-signing tooling. The
+  scanner had always classified files and nothing ever read the result.
 - The point is that a finding in a signing script and a finding in the running
   app read differently. The first sits in the build and release path, with its
   input controlled by the build environment; the second is exposed to whoever
   uses the app. 0.1.7 started surfacing the first kind in numbers and left you
   to tell them apart by reading paths.
+- **The role appears only when it was actually determined.** No role shown
+  means the tool could not tell, not that the file is unimportant — roughly
+  seven findings in ten across the projects measured. The classifier's
+  fallback answer is `renderer`, so reporting it would have printed
+  "renderer" wherever nothing matched, including on files whose own path
+  reads `src/main/`. The contract is the useful direction: **when a role is
+  shown, it is known.**
 
 ### Note
 
@@ -23,16 +29,22 @@
   from an interpolated path is a real risk wherever it runs. Verified across
   eight projects in all three exit modes, with identical exit codes and
   identical finding counts.
-- The classification is deliberately conservative, and never overrides a fact
-  about how the app runs: a file the manifest names as the entry point stays
-  `main`, and a build-looking name inside an application source tree stays
-  application code. Unrecognized build tooling keeps whatever role it had,
-  which loses context but states nothing false.
+- Withholding an uncertain role is deliberately not the same as lowering
+  `confidence`. `confidence` says how sure the tool is that the code is
+  dangerous; how sure it is about which process a file runs in is a separate
+  question, and letting a path heuristic answer the first would weaken a real
+  security verdict.
+- The classification is conservative in the same spirit, and never overrides a
+  fact about how the app runs: a file the manifest names as the entry point
+  stays `main`, and a build-looking name inside an application source tree
+  stays application code. Unrecognized build tooling reports no role rather
+  than a guessed one.
 - **This does change the output format.** JSON findings gain an optional
   `role` key, and SARIF results carry `role` in the result property bag
   alongside `confidence`. The key is omitted, not null, when a finding has no
-  role — findings anchored on `.html` (the CSP rules) or on package.json
-  (EA060/EA061/EA062) are not tied to a scanned source file and get none.
+  role — either because the role could not be determined, or because the
+  finding is anchored on `.html` (the CSP rules) or on package.json
+  (EA060/EA061/EA062), neither of which is a scanned source file.
   `schemaVersion` stays `1`: adding an optional key is not a breaking change,
   and existing consumers that read known keys are unaffected.
 
