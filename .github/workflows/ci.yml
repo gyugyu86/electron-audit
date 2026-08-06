@@ -25,6 +25,13 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run lint
+      # `npm run build` only type-checks what ships. This covers the test
+      # suite, the corpus scripts and the vitest config, which vitest itself
+      # never type-checks — a test asserting something the types forbid would
+      # otherwise pass. Offline: it reads only vendored sources, and the
+      # network-fetched Tier-1 corpus is excluded, so it behaves the same
+      # whether or not that checkout exists.
+      - run: npm run typecheck
       # Covers layer 1 (corpus snapshot regression), layer 2 (clean-corpus
       # FP=0), and layer 3 (adversarial-input robustness) — a single `npm
       # test` is the whole harness, so no separate steps are needed.

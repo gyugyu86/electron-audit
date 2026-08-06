@@ -1,0 +1,43 @@
+{
+  // Type-checks the code the build config does not: the test suite, the corpus
+  // scripts, and the vitest config. `tsconfig.json` includes only `src`,
+  // because that is what ships, and vitest never type-checks — so until this
+  // existed, a test could assert something the types forbid and still go
+  // green. That matters here more than in most projects: the invariants are
+  // held by tests (mutation checks, the clean gate, the corpus snapshot), so a
+  // test that is quietly wrong takes the guarantee with it.
+  //
+  // `scripts/` is in scope for the same reason. checkCleanCorpus.ts is what
+  // runs the clean gate; if it drifts, the gate's verdict cannot be trusted.
+  //
+  // Emit is off and `tsconfig.json` is untouched, so `npm run build` — which
+  // names that config explicitly — produces byte-identical output.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // The base config sets rootDir to `src` for the build layout. Without
+    // widening it here, every file outside `src` reports TS6059 (34 of them),
+    // which `noEmit` alone does not suppress.
+    "rootDir": ".",
+    "declaration": false,
+    "sourceMap": false
+  },
+  "include": ["src", "tests", "scripts", "vitest.config.ts"],
+  // These are the analyzer's INPUT, not this project's source: deliberately
+  // broken or vulnerable sample projects, plus vendored third-party corpora.
+  // They are not expected to type-check — decorator fixtures reference
+  // undeclared decorators on purpose, and the .mts/.cts fixtures use a generic
+  // form @babel/parser accepts but tsc reserves.
+  //
+  // Written out rather than left to a wildcard, for two measured reasons.
+  // The Tier-1 corpus happens to sit under a dot-directory that tsc's include
+  // globs skip anyway, and depending on that accident would break the moment
+  // it were renamed. And ESLint's identically-spelled `tests/corpus/*/**`
+  // does NOT mean the same thing here: under tsc it also swallows
+  // corpusRegression.test.ts and cleanCorpus.test.ts, which sit directly in
+  // tests/corpus/ and are very much our own code — the snapshot and clean-gate
+  // tests, of all things. Naming each corpus explicitly makes a future
+  // addition fail loudly (its files get checked and complain) instead of
+  // silently widening what goes unchecked.
+  "exclude": ["tests/fixtures/**", "tests/corpus/synthetic-vuln/**", "tests/corpus/clean/**"]
+}
