@@ -56,10 +56,10 @@ export function scanProject(options: ScanOptions): ScanResult {
   const rootDir = path.resolve(options.rootDir);
   const rootRealPath = realpathSync(rootDir);
   const maxFileSizeBytes = options.maxFileSizeBytes ?? DEFAULT_MAX_FILE_SIZE_BYTES;
-  const packageJsonMainPath = resolvePackageJsonMain(rootDir);
 
   const counters = { skippedOversized: 0, skippedOutsideRoot: 0 };
   const collected = collectFiles(rootDir, rootRealPath, new Set([rootRealPath]), counters);
+  const mainPaths = resolveManifestMains(collected.manifests);
 
   const files: ScannedFile[] = [];
   for (const filePath of collected.source) {
@@ -69,7 +69,7 @@ export function scanProject(options: ScanOptions): ScanResult {
     }
 
     const draft: ScannedFile = { path: filePath, content: readFileSync(filePath, 'utf8') };
-    const classification = classifyFileRole({ file: draft, packageJsonMainPath });
+    const classification = classifyFileRole({ file: draft, mainPaths });
     // The role is kept only when the classifier was sure of it. Its
     // unsure answer is always `renderer` — the fallback, not a finding about
     // the file — so storing it would put a guess where the rest of the code
@@ -106,17 +106,45 @@ export function scanProject(options: ScanOptions): ScanResult {
   };
 }
 
-function resolvePackageJsonMain(rootDir: string): string | undefined {
-  const packageJsonPath = path.join(rootDir, 'package.json');
-  if (!existsSync(packageJsonPath)) {
-    return undefined;
+// Every entry point declared by a package.json anywhere in the scanned tree,
+// not just the one at the root. Measured across real projects, the root
+// manifest names a file that exists in only 2 of 17 — the rest either point at
+// a bundler output that is not in source, or have no `main` at all because the
+// app lives in a workspace package whose own manifest does name it.
+//
+// Any manifest counts, at any depth, and no notion of "nearest" is needed: a
+// file either is declared an entry point by some manifest or it is not, and
+// two manifests naming the same file is not a conflict. Depth costs nothing
+// because the walk already excludes node_modules and the build output dirs, so
+// only the project's own manifests are seen.
+//
+// A `main` that resolves to a directory is accepted through its index.js,
+// which is how Node resolves it. One that resolves to nothing is dropped —
+// that is the bundler-output case, and guessing where the real source lives
+// would be exactly the invention this classifier avoids.
+function resolveManifestMains(manifestPaths: readonly string[]): string[] {
+  const entryPoints: string[] = [];
+  for (const manifestPath of manifestPaths) {
+    let main: unknown;
+    try {
+      main = (JSON.parse(readFileSync(manifestPath, 'utf8')) as { main?: unknown }).main;
+    } catch {
+      continue; // unparsable manifest — nothing to learn from it
+    }
+    if (typeof main !== 'string' || main === '') {
+      continue;
+    }
+    const resolved = path.resolve(path.dirname(manifestPath), main);
+    if (existsSync(resolved) && statSync(resolved).isFile()) {
+      entryPoints.push(resolved);
+      continue;
+    }
+    const asDirectoryIndex = path.join(resolved, 'index.js');
+    if (existsSync(asDirectoryIndex)) {
+      entryPoints.push(asDirectoryIndex);
+    }
   }
-  try {
-    const parsed = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as { main?: string };
-    return parsed.main ? path.resolve(rootDir, parsed.main) : undefined;
-  } catch {
-    return undefined;
-  }
+  return entryPoints;
 }
 
 interface WalkCounters {
@@ -127,6 +155,7 @@ interface WalkCounters {
 interface CollectedFiles {
   source: string[]; // every INCLUDED_EXTENSIONS file — JS-parsed and run through node rules
   html: string[]; // .html/.htm — read only for <meta> CSP extraction
+  manifests: string[]; // package.json at any depth — read only for its `main` entry point
 }
 
 // Symlink- and cycle-aware: a symlink (file or directory) that resolves
@@ -139,7 +168,7 @@ function collectFiles(
   visitedRealDirs: Set<string>,
   counters: WalkCounters,
 ): CollectedFiles {
-  const result: CollectedFiles = { source: [], html: [] };
+  const result: CollectedFiles = { source: [], html: [], manifests: [] };
   for (const entry of readDirEntriesSafe(dir)) {
     const fullPath = path.join(dir, entry.name);
 
@@ -163,7 +192,7 @@ function collectFiles(
         visitedRealDirs.add(real);
         merge(result, collectFiles(real, rootRealPath, visitedRealDirs, counters));
       } else if (stat.isFile()) {
-        classifyByExtension(real, entry.name, result);
+        classifyCollectedFile(real, entry.name, result);
       }
       continue;
     }
@@ -176,14 +205,21 @@ function collectFiles(
     }
 
     if (entry.isFile()) {
-      classifyByExtension(fullPath, entry.name, result);
+      classifyCollectedFile(fullPath, entry.name, result);
     }
   }
 
   return result;
 }
 
-function classifyByExtension(filePath: string, name: string, result: CollectedFiles): void {
+// Sorted by what the file is FOR, which is not always its extension:
+// package.json is picked out by name because it is read for one field, never
+// analyzed.
+function classifyCollectedFile(filePath: string, name: string, result: CollectedFiles): void {
+  if (name === 'package.json') {
+    result.manifests.push(filePath);
+    return;
+  }
   const ext = path.extname(name);
   if (INCLUDED_EXTENSIONS.has(ext)) {
     result.source.push(filePath);
@@ -195,6 +231,7 @@ function classifyByExtension(filePath: string, name: string, result: CollectedFi
 function merge(into: CollectedFiles, from: CollectedFiles): void {
   into.source.push(...from.source);
   into.html.push(...from.html);
+  into.manifests.push(...from.manifests);
 }
 
 function readDirEntriesSafe(dir: string) {

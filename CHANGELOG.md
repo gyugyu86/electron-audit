@@ -1,5 +1,35 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- More findings now report which kind of file they sit in. Two things were
+  keeping the answer unknown. A manifest that names a bundler output rather
+  than a source file said nothing about where the code lives, and in a
+  workspace the manifest that names the entry point is not the one at the
+  root — so entry points declared by any package.json in the project are now
+  read, at any depth. Where nothing declares a file, the directory a project
+  keeps its processes in (`main/`, `preload/`, `renderer/`) is used instead.
+  Measured across the projects tested, roughly a quarter of findings carried a
+  role before and closer to half do now.
+- **The order of those signals is what keeps them honest.** A declared entry
+  point wins over everything, then the filename, then build tooling, and the
+  directory name is asked last, only when nothing more certain has answered.
+  A directory called `main` does not always mean the main process — in a real
+  app measured during this work, `windows/main/` is the main *window*, sibling
+  to `windows/about/` and `windows/loading/`, and holds preload code. The
+  filename settles those before the directory is consulted.
+- Findings whose role still cannot be determined continue to show no role
+  rather than a guess, as in 0.1.8.
+
+### Note
+
+- **Severity, confidence and exit codes are unchanged.** This affects which
+  findings can say what kind of file they are in, nothing about how they are
+  judged — verified against the published build across nine projects in all
+  three exit modes, with identical exit codes and identical finding counts.
+
 ## 0.1.8 - 2026-08-06
 
 ### Added

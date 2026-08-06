@@ -1,0 +1,6 @@
+{
+  "name": "manifest-in-renderer-fixture",
+  "version": "1.0.0",
+  "main": "src/renderer/entry.js",
+  "devDependencies": { "electron": "^31.0.0" }
+}

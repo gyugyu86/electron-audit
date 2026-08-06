@@ -21,13 +21,18 @@ function findingsFor(fixture: string, relative: string): Finding[] {
 // answer is always `renderer`, so reporting the fallback meant printing
 // "renderer" wherever nothing matched — including on files whose own path
 // says main/ or preload/.
+//
+// The fixture this uses matters. It was originally a file under `src/main/`
+// with a bundler-output manifest, which the directory layout can now answer;
+// that case moved to the layout tests, and the property lives here on a file
+// nothing can speak for — no manifest entry, no marker in the filename, and a
+// directory (`src/services/`) that says nothing about a process.
 describe('an undetermined role is reported as no role, not as renderer', () => {
-  it('omits the role when the manifest entry point is a bundler output', () => {
-    const findings = findingsFor('bundled-main', 'src/main/bootstrap.ts');
+  it('omits the role when no signal identifies the process', () => {
+    const findings = findingsFor('undetermined', 'src/services/telemetry.ts');
 
     expect(findings.length).toBeGreaterThan(0);
     for (const finding of findings) {
-      // Previously this said 'renderer', on a file under src/main/.
       expect(finding.role).toBeUndefined();
     }
   });
@@ -35,7 +40,7 @@ describe('an undetermined role is reported as no role, not as renderer', () => {
   // The point is silence, not a downgrade: dropping the role must not touch
   // how sure the rule is that the code is dangerous, nor how bad it would be.
   it('leaves severity and confidence exactly as they were', () => {
-    const [finding] = findingsFor('bundled-main', 'src/main/bootstrap.ts');
+    const [finding] = findingsFor('undetermined', 'src/services/telemetry.ts');
 
     expect(finding?.ruleId).toBe('EA020');
     expect(finding?.severity).toBe('critical');
