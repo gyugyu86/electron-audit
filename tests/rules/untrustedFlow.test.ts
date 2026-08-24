@@ -32,6 +32,31 @@ describe('EA050 untrusted deserialization / external input -> sink', () => {
     expect(result.findings[0]?.target).toContain('file path');
   });
 
+  // A wrapper package re-exporting the fs API is the same sink as fs itself.
+  // Not recognizing one is a miss nothing reports: the scan completes, the
+  // file looks clean, and the reason is that the sink was never identified.
+  // One entry per recognized wrapper, so removing any single one fails only
+  // its own case.
+  it('C: ipc handler arg -> fs sink reached through fs-extra fires', () => {
+    const result = run('EA050/vulnerable-ipc-fs-extra');
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]).toMatchObject({ ruleId: 'EA050', severity: 'medium', confidence: 'heuristic' });
+    expect(result.findings[0]?.target).toContain('file path');
+  });
+
+  it('C: ipc handler arg -> fs sink reached through graceful-fs fires', () => {
+    const result = run('EA050/vulnerable-ipc-graceful-fs');
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]).toMatchObject({ ruleId: 'EA050', severity: 'medium', confidence: 'heuristic' });
+    expect(result.findings[0]?.target).toContain('file path');
+  });
+
+  // Recognizing the module must not turn every call through it into a
+  // finding — the taint check still has to reach the path argument.
+  it('stays silent for a static path through a recognized wrapper', () => {
+    expect(run('EA050/safe-fs-wrapper-static').findings).toHaveLength(0);
+  });
+
   it('stays silent for JSON.parse of a local fs read (local config, not external)', () => {
     expect(run('EA050/safe-local-fs-config').findings).toHaveLength(0);
   });

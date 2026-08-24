@@ -25,7 +25,32 @@ import { requireSource } from './importBindings.js';
 
 // Import sources arrive already normalized (the `node:` prefix stripped by
 // importBindings), so the bare names cover `node:fs` / `node:fs/promises` too.
-const FS_MODULE_SOURCES = new Set(['fs', 'fs/promises']);
+//
+// Wrapper packages belong here for the same reason the `node:` prefix is
+// stripped in one place rather than per rule: a variant that is handled
+// nowhere is a MISS THAT NOTHING REPORTS. A project using a wrapper looks
+// clean not because its file writes are safe but because the sink was never
+// recognized — measured, one real project routes an IPC-driven read, write
+// and unlink through `fs-extra` and none of the three were reported.
+//
+// The bar for an entry is that the package RE-EXPORTS THE fs API UNDER THE
+// SAME METHOD NAMES, because `fsPathSinkArg` keys on the method name and the
+// path being the first argument:
+//   - fs-extra    — vanilla fs plus extra helpers, so every name in
+//                   FS_PATH_METHODS behaves exactly as it does on fs.
+//   - graceful-fs — published as a drop-in replacement for fs; identical
+//                   surface by design.
+// Their extra helpers (fs-extra's outputFile, move, ensureDir, …) are NOT in
+// FS_PATH_METHODS and so are not matched — widening that is a separate
+// question from which module a binding came from.
+//
+// What must NOT be added is a package that merely happens to share a method
+// name. Measured in the same corpora, a spreadsheet library exposes
+// `readFile`, whose argument is a workbook path handed to a parser, not a raw
+// filesystem sink; adding it would invent a finding. React-Native filesystem
+// packages are out for the same reason — a different API surface, and not a
+// context this tool analyzes.
+const FS_MODULE_SOURCES = new Set(['fs', 'fs/promises', 'fs-extra', 'graceful-fs']);
 const FS_PATH_METHODS = new Set([
   'readFile',
   'readFileSync',

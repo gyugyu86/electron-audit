@@ -1,5 +1,34 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Untrusted data reaching a filesystem sink is now tracked through the common
+  `fs` wrapper packages, not only through `fs` itself. EA050 identified a
+  sink by which module the call came from, and the list held `fs` and
+  `fs/promises` alone — so a project that imports `fs-extra` or `graceful-fs`,
+  both of which re-export the same API under the same names, had those calls
+  go unrecognized. That is the quiet kind of miss: the scan completes and the
+  file looks clean because the sink was never identified, not because the
+  writes were safe. Measured on a real project, an IPC-driven read, write and
+  unlink all routed through a wrapper and none of the three were reported.
+
+### Note
+
+- **This produces genuinely new findings.** A project using one of those
+  packages can see reports it did not see before, in code that has not
+  changed.
+- **Exit codes do not change.** EA050 is medium severity with heuristic
+  confidence, which neither the default gate nor `--strict` fails on —
+  verified against the previous release across five projects in all three
+  modes, where the finding count rose and every exit code stayed identical.
+- Only the list of modules recognized as filesystem access changed. The
+  dataflow analysis, its same-function-scope limit, the source families and
+  the set of sink methods are all untouched. Packages that merely happen to
+  share a method name are deliberately excluded — a spreadsheet library's
+  `readFile` takes a workbook path to a parser, not a filesystem sink.
+
 ## 0.1.9 - 2026-08-06
 
 ### Changed
