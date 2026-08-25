@@ -13,6 +13,17 @@
   file looks clean because the sink was never identified, not because the
   writes were safe. Measured on a real project, an IPC-driven read, write and
   unlink all routed through a wrapper and none of the three were reported.
+- The helpers `fs-extra` adds on top of `fs` are recognized as filesystem
+  sinks too — `outputFile`, `outputJson`, `writeJson`, `readJson`, `remove`,
+  `emptyDir`, `move`, `copy` and their `Sync` siblings. A renderer-supplied
+  path handed to `emptyDir` is a recursive delete and to `outputFile` an
+  arbitrary write, which is the same exposure as the `unlink` and `writeFile`
+  already covered. In the same project four more handlers on the same IPC
+  bridge were being missed for this reason.
+- Directory-creating helpers (`ensureDir`, `mkdirp`, `ensureFile`) and
+  metadata checks (`pathExists`) are deliberately not included: they read,
+  write and destroy nothing, and vanilla `fs`'s own `mkdir` and `stat` are
+  absent from that list for the same reason.
 
 ### Note
 
@@ -23,11 +34,16 @@
   confidence, which neither the default gate nor `--strict` fails on —
   verified against the previous release across five projects in all three
   modes, where the finding count rose and every exit code stayed identical.
-- Only the list of modules recognized as filesystem access changed. The
-  dataflow analysis, its same-function-scope limit, the source families and
-  the set of sink methods are all untouched. Packages that merely happen to
-  share a method name are deliberately excluded — a spreadsheet library's
-  `readFile` takes a workbook path to a parser, not a filesystem sink.
+- Only what counts as filesystem access changed — which modules, and which
+  of their methods. The dataflow analysis, its same-function-scope limit and
+  the source families are untouched, as are the command and external-URL
+  sinks.
+- A method name alone never makes a sink: the receiver has to resolve to one
+  of the recognized filesystem modules first. That is what allows a name as
+  ordinary as `remove` on the list — across the projects measured it is called
+  hundreds of times on things that are not the filesystem, and none of them is
+  reported. By the same check, a spreadsheet library's `readFile` stays what
+  it is, a workbook path handed to a parser.
 
 ## 0.1.9 - 2026-08-06
 

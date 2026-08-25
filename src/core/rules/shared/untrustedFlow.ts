@@ -51,6 +51,33 @@ import { requireSource } from './importBindings.js';
 // packages are out for the same reason — a different API surface, and not a
 // context this tool analyzes.
 const FS_MODULE_SOURCES = new Set(['fs', 'fs/promises', 'fs-extra', 'graceful-fs']);
+// Method names count as a path sink only in combination with a binding that
+// resolved to FS_MODULE_SOURCES above — `fsPathSinkArg` returns nothing when
+// the receiver is some unrelated object. That is what makes it safe to list a
+// name as ordinary as `remove` here: measured across the corpora, `remove` is
+// called 785 times on things that are not the filesystem (maps, stores, hosts,
+// DOM nodes) and 55 times on an fs binding, and adding it produced no finding
+// on any of the 785. The bar for this list is therefore not how unusual a name
+// looks; it is what the method DOES.
+//
+// That bar is content: a method belongs here when it reads file contents,
+// writes file contents, or destroys them, and takes the path as its first
+// argument. Everything vanilla `fs` contributes meets it, and so do the
+// fs-extra helpers below — a renderer-supplied path handed to `emptyDir` or
+// `outputFile` is a recursive delete or an arbitrary write, which is the same
+// exposure as `unlink` and `writeFile` already in this list.
+//
+// Deliberately NOT here, so the bar stays legible:
+//   - ensureDir / mkdirp / mkdirs / ensureFile — these create an empty node
+//     and read, write or destroy nothing. `fs` has mkdir and it is absent for
+//     the same reason.
+//   - pathExists / stat / access — metadata only, no contents.
+//   - ensureLink / ensureSymlink — link creation is a different class, and the
+//     dangerous argument is the link path in position two, which this check
+//     cannot reach (it only ever returns the first argument). Half-catching it
+//     would be worse than leaving it out.
+// The same first-argument limit applies to `move` and `copy`: the source is
+// matched, the destination is not.
 const FS_PATH_METHODS = new Set([
   'readFile',
   'readFileSync',
@@ -62,6 +89,24 @@ const FS_PATH_METHODS = new Set([
   'appendFileSync',
   'createReadStream',
   'createWriteStream',
+  // fs-extra helpers, listed with their Sync siblings so no variant is the one
+  // nothing handles.
+  'outputFile',
+  'outputFileSync',
+  'outputJson',
+  'outputJsonSync',
+  'writeJson',
+  'writeJsonSync',
+  'readJson',
+  'readJsonSync',
+  'remove',
+  'removeSync',
+  'emptyDir',
+  'emptyDirSync',
+  'move',
+  'moveSync',
+  'copy',
+  'copySync',
 ]);
 
 export type SourceFamily = 'B' | 'A' | 'C';
