@@ -207,18 +207,22 @@ Node 빌트인-프로토콜 prefix를 벗겨 `child_process`로 통일한다(서
 | A | 001~007 | BrowserWindow / webPreferences | 전부 |
 | B | 010~013 | Content Security Policy | 전부 |
 | C | 020~022 | 명령 실행(command injection) | 전부 |
-| D | 030~032 | IPC | 미구현(넘버링 예약) |
+| D | 030~032 | IPC | 031 (030 = EA050이 이미 담당, 032 보류) |
 | E | 040~043 | 외부 상호작용(shell.openExternal, 원격 URL 등) | 040·041·042 (043 보류) |
 | F | 050~051 | 원격 데이터 & 업데이트 | 050 (051 = v2 후보 #1) |
 | G | 060~062 | 기타 위생(텔레메트리, 코드서명, 구버전) | 전부 |
 
 구현된 규칙은 `src/core/rules/index.ts`의 `ALL_RULES`가 단일 진실원이다. 현재
-**규칙 ID 21개 / 배열 항목 22개**로, 두 수가 다른 이유는 EA041이 absence +
+**규칙 ID 22개 / 배열 항목 23개**로, 두 수가 다른 이유는 EA041이 absence +
 unconditional-allow 두 facet으로 배열에 두 번 들어가면서 같은 ruleId 'EA041'을
 내기 때문이다(규칙을 추가하고 이 숫자를 갱신할 때 어느 기준인지 헷갈리지 않도록
-둘 다 적는다). 보류(EA043 webview/will-navigate, EA051 자동 업데이트 서명)의
-사유는 `ALL_RULES` 주석에 상세히 적혀 있다 — 저오탐 정적 신호를 아직 못 만든
-것이 유일한 이유이며, 특히 EA051은 위험이 실제한 v2 최우선 후보다.
+둘 다 적는다). 보류(EA043 webview/will-navigate, EA051 자동 업데이트 서명,
+그리고 D그룹의 EA030·EA032)의 사유는 `ALL_RULES` 주석에 상세히 적혀 있다.
+D그룹은 사유의 성격이 다르다는 점만 여기 적어 둔다 — EA030은 신호가 없어서가
+아니라 **이미 EA050으로 출하돼 있고**(그 규칙의 소스 패밀리 C가 정확히 IPC
+핸들러 인자다), EA032는 `contextIsolation`이 켜져 있으면 위험 자체가 성립하지
+않아 **EA002와 중복이거나 오탐**이다. EA043·EA051은 종전대로 저오탐 신호를 아직
+못 만든 것이 이유이며, 특히 EA051은 위험이 실제한 v2 최우선 후보다.
 
 심각도 레벨(5단계): `critical` > `high` > `medium` > `low` > `info`.
 
@@ -363,7 +367,7 @@ BrowserWindow도 IPC도 없다). 그래서 강건성 요구는 자기 자신이 
   findings를 버퍼링하다 던지면 파일 전체를 폐기하고, 결정적으로 `parsedFiles`에도
   넣지 않는다(그래야 `parsedFiles`만 순회하는 AggregateRule 쪽에서 같은 파일을
   다시 만나 재크래시하지 않는다). 파일 단위로 감싸는 이유는 scope-crawl이 첫
-  traverse에서만 터지므로 규칙마다 감싸면 규칙 수만큼(현재 21개) 같은 실패를
+  traverse에서만 터지므로 규칙마다 감싸면 규칙 수만큼(현재 22개) 같은 실패를
   반복해서 맞기 때문이다. 이렇게 스킵된 파일은 `filesUnparsable`과 별도인
   `filesAnalysisErrors`로 카운트한다 — 실패 단계가 다르기 때문이며(파싱 vs 분석),
   이 구분이 없으면 "파일이 왜 하나 덜 스캔됐는지"를 사람이 추적할 수 없다. 두

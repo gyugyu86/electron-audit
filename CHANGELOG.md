@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+### Added
+
+- **EA031** — a preload that exposes a function letting its caller choose the
+  IPC channel. `contextBridge.exposeInMainWorld('api', { invoke: (channel,
+  ...args) => ipcRenderer.invoke(channel, ...args) })` is not an API surface;
+  it is a door onto every channel the app registers, so renderer code —
+  including anything an XSS injects into the page — can reach any main-process
+  handler or subscribe to any channel and read what main sends back. The
+  preload is the boundary that decides which of those are reachable, and a
+  caller-supplied channel removes that decision. The fix is to expose named
+  operations with the channel written in the preload, which the report spells
+  out.
+- Reported at medium severity with high confidence: the pattern is syntactic
+  and unambiguous, while how much it can be abused depends on which handlers
+  the app registers. Medium keeps it out of the default exit-code gate.
+- The other two numbers reserved for the IPC group are not implemented, and
+  the reasons are recorded next to the rule list. EA030 is not missing — it
+  already ships as EA050, whose source family C is exactly an IPC handler's
+  arguments. EA032 would duplicate EA002 when it matters and misfire when it
+  does not, since writing to `window` in a preload exposes nothing while
+  context isolation is on.
+
 ### Fixed
 
 - Untrusted data reaching a filesystem sink is now tracked through the common

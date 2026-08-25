@@ -13,6 +13,7 @@ import { EA013 } from './EA013.js';
 import { EA020 } from './EA020.js';
 import { EA021 } from './EA021.js';
 import { EA022 } from './EA022.js';
+import { EA031 } from './EA031.js';
 import { EA040 } from './EA040.js';
 import { EA041Absence, EA041UnconditionalAllow } from './EA041.js';
 import { EA042 } from './EA042.js';
@@ -26,6 +27,35 @@ import { EA062 } from './EA062.js';
 // keeping their own hand-maintained lists that would drift as groups land.
 // EA041 has two facets (absence + unconditional-allow) that both emit
 // ruleId 'EA041'.
+//
+// D group (IPC): only EA031 is implemented. The other two reserved numbers are
+// not held back for want of a signal — measurement said each would be wrong in
+// its own way:
+// - EA030 (IPC handler argument reaching a sink unvalidated) IS ALREADY
+//   SHIPPED, as EA050. That rule's source family C is precisely "a parameter
+//   after `event` of an ipcMain.handle/on or ipcRenderer.on callback", flowing
+//   to the command, external-URL and filesystem sinks. Adding EA030 would
+//   report the same call sites twice under two ids. Measured across the
+//   corpora: of 309 inline handlers carrying such a parameter, 6 reach a sink
+//   inside the same function scope — the limit of this tool's dataflow, since
+//   270 of the rest hand the parameter to another function — and EA050 already
+//   reports them.
+// - EA032 (renderer API exposed on `window` without contextBridge) would be
+//   redundant exactly when it matters and wrong the rest of the time. A
+//   preload writing to `window` exposes nothing while contextIsolation is on,
+//   because that window is an isolated world the page never sees; when it is
+//   off, EA002 already reports the isolation itself, which is the actual
+//   defect. Measured on a modern app where isolation defaults on, 36 of 37
+//   candidate writes were to an isolated world, and 16 more were shims
+//   (`window.onerror`, `window.setImmediate`) or test files rather than any
+//   API surface.
+//
+// EA031 reads only an object literal written inline at the exposeInMainWorld
+// call. A pass-through held in a const is not reported — a miss taken on
+// purpose: reading those was measured and every case it reached had already
+// checked the channel against an allowlist, which is the fix this rule
+// recommends. Recognizing such a guard, the way EA040 recognizes a dominating
+// scheme guard, is what would make the wider read safe, and is a v2 candidate.
 //
 // Deferred (held rather than shipped as noisy heuristics):
 // - EA043 (will-navigate / webview guard absence). Its strongest signal — a
@@ -61,6 +91,7 @@ export const ALL_RULES: Rule[] = [
   EA020,
   EA021,
   EA022,
+  EA031,
   EA040,
   EA041Absence,
   EA041UnconditionalAllow,
