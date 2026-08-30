@@ -159,18 +159,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: gyugyu86/electron-audit@v0.1.9
+      - uses: gyugyu86/electron-audit@v0.1.10
         with:
           path: .                  # 스캔할 프로젝트 경로
-          version: 0.1.9           # 스캐너 버전 고정 (기본: latest)
+          version: 0.1.10           # 스캐너 버전 고정 (기본: latest)
           # fail-on-findings: true # high-confidence critical/high면 체크 실패 (기본)
           # upload: true           # 코드 스캐닝 업로드 (기본)
 ```
 
-`@v0.1.9` 태그 고정을 권장합니다. supply-chain 관점에서 가장 강한 보장을 원하면
+`@v0.1.10` 태그 고정을 권장합니다. supply-chain 관점에서 가장 강한 보장을 원하면
 태그가 가리키는 커밋 SHA로 고정하세요 — 저자는 태그는 옮길 수 있어도 커밋 SHA는
-옮길 수 없습니다. `git rev-parse v0.1.9^{commit}`로 조회해
-`uses: gyugyu86/electron-audit@<sha>  # v0.1.9` 형태로 씁니다.
+옮길 수 없습니다. `git rev-parse v0.1.10^{commit}`로 조회해
+`uses: gyugyu86/electron-audit@<sha>  # v0.1.10` 형태로 씁니다.
 
 **스캐너 버전도 고정하세요.** `version:` 입력의 기본값은 `latest`라, 액션만
 고정(태그·SHA)해도 스캐너는 **고정되지 않습니다** — 실행 시점의 npm `latest`로
@@ -184,7 +184,7 @@ fork에서 올라온 PR에서는 GitHub이 `security-events: write`를 부여하
 스텝이 건너뛰어집니다 — 오류가 아니라 GitHub 제약입니다. 같은 저장소 브랜치의
 실행은 정상 업로드됩니다.
 
-## 규칙 목록 (구현된 21개)
+## 규칙 목록 (구현된 22개)
 
 심각도: `critical` > `high` > `medium` > `low` > `info`.
 
@@ -204,6 +204,7 @@ fork에서 올라온 PR에서는 GitHub이 `security-events: write`를 부여하
 | EA020 | C. 명령 실행 | critical | `exec`/`spawn(shell:true)`에 보간된 명령 문자열 |
 | EA021 | C | critical | 위가 `sudo-prompt`류 권한상승과 결합 |
 | EA022 | C | high | 셸에 흘러가는 검증 안 된 변수(heuristic) |
+| EA031 | D. IPC | medium | preload가 채널명을 호출자에게서 받아 그대로 넘기는 노출 |
 | EA040 | E. 외부 상호작용 | high | `shell.openExternal(변수)` — 스킴 화이트리스트 없음 |
 | EA041 | E | medium | `setWindowOpenHandler` 부재 또는 무조건 `allow` |
 | EA042 | E | medium | `loadURL`에 원격/비-https 리터럴 URL |

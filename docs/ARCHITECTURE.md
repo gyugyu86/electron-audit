@@ -123,11 +123,20 @@ tests/
     electron-builder 사용 여부), `packageJsonBuild`(EA061 서명 설정 점검),
     `htmlCspSites`(HTML `<meta>` CSP — 아래 CSP 프리미티브 참조). 규칙에
     프로젝트 전역 사실이 필요하면 파일마다 다시 읽지 말고 여기에 추가한다.
-- **파일 역할 분류**(`main`/`preload`/`renderer`)는 규칙과 분리된 독립 모듈
-  `fileRoleClassifier`가 담당한다. `package.json`의 `main` 필드 →
-  `webPreferences.preload` 경로 → 파일명 휴리스틱 순으로 판정하고, 불확실하면
-  전역 처리 + `confidence` 하향. 오분류가 실질 오탐/미탐의 주원인이므로 단독
-  테스트 가능하게 유지한다.
+- **파일 역할 분류**(`main`/`preload`/`renderer`/`build`)는 규칙과 분리된 독립
+  모듈 `fileRoleClassifier`가 담당한다. 어떤 `package.json`이든 entry point로
+  선언한 경로 → `webPreferences.preload` 경로 → build 도구 → 파일명 휴리스틱 →
+  디렉토리 규약(`main/`·`preload/`·`renderer/`) 순으로 판정한다. **더 확실한
+  신호가 먼저 이긴다는 이 순서가 안전 논거 자체**다 — `main`이라는 디렉토리는
+  메인 윈도우를 뜻할 수도 있어서, 파일명 검사가 디렉토리보다 먼저 와야 한다.
+- **어느 것도 일치하지 않으면 role을 표시하지 않는다.** 반환값의
+  `confident: false`가 그 뜻이고, 그때 딸려 오는 `renderer`는 "아마 렌더러"가
+  아니라 필드가 값을 요구해서 있는 폴백일 뿐이라 호출 측(`scanner`)이 버린다.
+  **`confidence`는 건드리지 않는다.** 이전 계약은 불확실할 때 finding의
+  `confidence`를 낮추는 것이었는데, 그건 잘못된 레버였다 — `confidence`는
+  "그 코드가 위험하다고 얼마나 확신하는가"이고 파일이 어느 프로세스에서 도는지에
+  대한 확신도와는 다른 질문이라, 섞으면 경로 휴리스틱이 실제 보안 판정을 약화시킨다.
+  오분류가 실질 오탐/미탐의 주원인이므로 단독 테스트 가능하게 유지한다.
 - **공용 프리미티브 5개**를 규칙보다 먼저(또는 규칙과 함께) 만든다. 여러 규칙이
   같은 로직을 중복 구현하지 않게 하기 위함이다.
   1. **webPreferences 추출기**(`src/core/ast/webPreferencesExtractor.ts`) —

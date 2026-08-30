@@ -169,18 +169,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: gyugyu86/electron-audit@v0.1.9
+      - uses: gyugyu86/electron-audit@v0.1.10
         with:
           path: .                  # project to scan
-          version: 0.1.9           # pin the scanner (default: latest)
+          version: 0.1.10           # pin the scanner (default: latest)
           # fail-on-findings: true # fail on high-confidence critical/high (default)
           # upload: true           # upload to code scanning (default)
 ```
 
-`@v0.1.9` is the recommended pin. For the strongest supply-chain guarantee, pin
+`@v0.1.10` is the recommended pin. For the strongest supply-chain guarantee, pin
 the commit SHA the tag resolves to instead — an author can move a tag, but not a
-commit SHA. Run `git rev-parse v0.1.9^{commit}` and use
-`uses: gyugyu86/electron-audit@<sha>  # v0.1.9`.
+commit SHA. Run `git rev-parse v0.1.10^{commit}` and use
+`uses: gyugyu86/electron-audit@<sha>  # v0.1.10`.
 
 **Pin the scanner too.** The `version:` input defaults to `latest`, so pinning
 only the action (by tag or SHA) does **not** pin the scanner — it will resolve
@@ -196,7 +196,7 @@ On pull requests **from a fork**, GitHub withholds `security-events: write`, so
 the upload step is skipped there — a GitHub restriction, not an error. Runs on
 branches in the same repository upload normally.
 
-## Rules (21 implemented)
+## Rules (22 implemented)
 
 Severity: `critical` > `high` > `medium` > `low` > `info`.
 
@@ -216,6 +216,7 @@ Severity: `critical` > `high` > `medium` > `low` > `info`.
 | EA020 | C. command execution | critical | interpolated command string in `exec`/`spawn(shell:true)` |
 | EA021 | C | critical | the above combined with a `sudo-prompt`-style privilege escalator |
 | EA022 | C | high | an unvalidated variable reaching a shell (heuristic) |
+| EA031 | D. IPC | medium | a preload exposing a function whose caller picks the IPC channel |
 | EA040 | E. external interaction | high | `shell.openExternal(variable)` — no scheme allowlist |
 | EA041 | E | medium | missing `setWindowOpenHandler`, or one that unconditionally allows |
 | EA042 | E | medium | `loadURL` with a remote/non-https literal URL |
