@@ -29,7 +29,7 @@ src/
     electronVersion.ts   package.json에서 electron major 버전 판독
     projectMetadata.ts   rootDir/packageJsonPath/dependencyNames/build 수집
     url.ts           URL 스킴 파싱 헬퍼
-    fileRoleClassifier.ts   파일이 main/preload/renderer 중 무엇인지 분류
+    fileRoleClassifier.ts   파일이 main/preload/renderer/build 중 무엇인지 분류
     rules/           규칙 하나당 파일 하나 (EA001.ts ...)
       index.ts         ALL_RULES — 구현된 전체 규칙 목록(단일 진실원)
       shared/          여러 규칙이 공유하는 "분류" 로직(아래 규약 참조)
