@@ -20,6 +20,9 @@ export function formatJsonReport(findings: Finding[], meta: ReportMeta): string 
       filesAnalysisErrors: meta.filesAnalysisErrors,
       filesSkippedOversized: meta.filesSkippedOversized,
       filesSkippedOutsideRoot: meta.filesSkippedOutsideRoot,
+      // Always present, zero included — like the other counts. An additive
+      // key, so schemaVersion stays 1.
+      filesSkippedUnsupported: meta.filesSkippedUnsupported,
     },
     findings: orderedFindings(model).map((finding) => ({
       ruleId: finding.ruleId,

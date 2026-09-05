@@ -20,6 +20,11 @@ export interface ScanResult {
   // even get read/parsed, for two different reasons.
   skippedOversized: number;
   skippedOutsideRoot: number;
+  // Files in UNSUPPORTED_SOURCE_EXTENSIONS. A third reason a file is never
+  // read, kept apart from the two above and from the engine's parse/analysis
+  // counts: each is a different stage, and collapsing them would make "why is
+  // this file missing" untraceable.
+  skippedUnsupported: number;
   // Project-wide facts derived once here and threaded into every rule.
   project: ProjectContext;
 }
@@ -50,6 +55,20 @@ const INCLUDED_EXTENSIONS = new Set([
 // HTML is collected separately and read ONLY to extract <meta> CSP — it is
 // never JS-parsed or run through the node rules (HTML has no JS sinks).
 const HTML_EXTENSIONS = new Set(['.html', '.htm']);
+// Source formats this tool knows about and cannot analyze: single-file
+// components keep their JavaScript inside a <script> block that would have to
+// be extracted first. They are counted, never read — like an oversized file —
+// so the report can say that code went unanalyzed instead of quietly showing
+// a smaller file count. Extracting them was measured and deferred (see
+// ARCHITECTURE): 758 components across six real projects yielded nine
+// heuristic findings and no high-confidence ones.
+//
+// Only these two. Counting every unsupported extension was measured too and
+// is useless as a signal — one project has 4,528 such files, almost all
+// images, JSON and markdown, and even the clean corpus shows dozens — while
+// other component formats (.astro, .coffee, .marko) do not appear in any
+// corpus at all, so listing them would be guessing.
+const UNSUPPORTED_SOURCE_EXTENSIONS = new Set(['.vue', '.svelte']);
 const EXCLUDED_DIR_NAMES = new Set(['node_modules', 'dist', 'build', 'out', '.git']);
 
 export function scanProject(options: ScanOptions): ScanResult {
@@ -57,7 +76,7 @@ export function scanProject(options: ScanOptions): ScanResult {
   const rootRealPath = realpathSync(rootDir);
   const maxFileSizeBytes = options.maxFileSizeBytes ?? DEFAULT_MAX_FILE_SIZE_BYTES;
 
-  const counters = { skippedOversized: 0, skippedOutsideRoot: 0 };
+  const counters = { skippedOversized: 0, skippedOutsideRoot: 0, skippedUnsupported: 0 };
   const collected = collectFiles(rootDir, rootRealPath, new Set([rootRealPath]), counters);
   const mainPaths = resolveManifestMains(collected.manifests);
 
@@ -102,6 +121,7 @@ export function scanProject(options: ScanOptions): ScanResult {
     files,
     skippedOversized: counters.skippedOversized,
     skippedOutsideRoot: counters.skippedOutsideRoot,
+    skippedUnsupported: counters.skippedUnsupported,
     project,
   };
 }
@@ -150,6 +170,7 @@ function resolveManifestMains(manifestPaths: readonly string[]): string[] {
 interface WalkCounters {
   skippedOversized: number;
   skippedOutsideRoot: number;
+  skippedUnsupported: number;
 }
 
 interface CollectedFiles {
@@ -192,7 +213,7 @@ function collectFiles(
         visitedRealDirs.add(real);
         merge(result, collectFiles(real, rootRealPath, visitedRealDirs, counters));
       } else if (stat.isFile()) {
-        classifyCollectedFile(real, entry.name, result);
+        classifyCollectedFile(real, entry.name, result, counters);
       }
       continue;
     }
@@ -205,7 +226,7 @@ function collectFiles(
     }
 
     if (entry.isFile()) {
-      classifyCollectedFile(fullPath, entry.name, result);
+      classifyCollectedFile(fullPath, entry.name, result, counters);
     }
   }
 
@@ -215,16 +236,23 @@ function collectFiles(
 // Sorted by what the file is FOR, which is not always its extension:
 // package.json is picked out by name because it is read for one field, never
 // analyzed.
-function classifyCollectedFile(filePath: string, name: string, result: CollectedFiles): void {
+function classifyCollectedFile(
+  filePath: string,
+  name: string,
+  result: CollectedFiles,
+  counters: WalkCounters,
+): void {
   if (name === 'package.json') {
     result.manifests.push(filePath);
     return;
   }
-  const ext = path.extname(name);
+  const ext = path.extname(name).toLowerCase();
   if (INCLUDED_EXTENSIONS.has(ext)) {
     result.source.push(filePath);
   } else if (HTML_EXTENSIONS.has(ext)) {
     result.html.push(filePath);
+  } else if (UNSUPPORTED_SOURCE_EXTENSIONS.has(ext)) {
+    counters.skippedUnsupported += 1; // counted, not collected — never opened
   }
 }
 

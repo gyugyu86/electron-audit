@@ -57,6 +57,7 @@ async function runAudit(targetPath: string, options: CliOptions): Promise<void> 
     filesAnalysisErrors: result.filesAnalysisErrors,
     filesSkippedOversized: scan.skippedOversized,
     filesSkippedOutsideRoot: scan.skippedOutsideRoot,
+    filesSkippedUnsupported: scan.skippedUnsupported,
   };
 
   // The skip COUNTS are always surfaced (below); the per-file error messages
@@ -103,6 +104,7 @@ function printTerminalSkipNotes(filesScanned: number, meta: ReportMeta): void {
   if (meta.filesAnalysisErrors > 0) notes.push(messages.countAnalysisErrors(meta.filesAnalysisErrors));
   if (meta.filesSkippedOversized > 0) notes.push(messages.countOversized(meta.filesSkippedOversized));
   if (meta.filesSkippedOutsideRoot > 0) notes.push(messages.countOutsideRoot(meta.filesSkippedOutsideRoot));
+  if (meta.filesSkippedUnsupported > 0) notes.push(messages.countUnsupported(meta.filesSkippedUnsupported));
   if (notes.length > 0) {
     console.error(chalk.dim(messages.terminalSkipNote(notes.join(', '), filesScanned)));
   }

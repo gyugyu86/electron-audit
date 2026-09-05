@@ -39,6 +39,10 @@ export const messages = {
   countAnalysisErrors: (n: number): string => `${n} skipped (analysis error)`,
   countOversized: (n: number): string => `${n} skipped (over size limit)`,
   countOutsideRoot: (n: number): string => `${n} symlink(s) outside root skipped`,
+  // Says what went unanalyzed, not merely that something was skipped — and
+  // hedges: a .vue file is almost always renderer code, but this cannot know.
+  countUnsupported: (n: number): string =>
+    `${n} single-file component${n === 1 ? '' : 's'} (.vue/.svelte) not analyzed — if your renderer lives there, it is outside this scan`,
   analysisErrorDetail: (file: string, message: string): string => `  analysis error: ${file}: ${message}`,
   terminalSkipNote: (notes: string, filesScanned: number): string => `(${notes} / ${filesScanned} files scanned)`,
 

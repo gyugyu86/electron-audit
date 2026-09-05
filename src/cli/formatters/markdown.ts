@@ -78,6 +78,7 @@ function scanNote(meta: ReportMeta): string {
   if (meta.filesAnalysisErrors > 0) parts.push(messages.countAnalysisErrors(meta.filesAnalysisErrors));
   if (meta.filesSkippedOversized > 0) parts.push(messages.countOversized(meta.filesSkippedOversized));
   if (meta.filesSkippedOutsideRoot > 0) parts.push(messages.countOutsideRoot(meta.filesSkippedOutsideRoot));
+  if (meta.filesSkippedUnsupported > 0) parts.push(messages.countUnsupported(meta.filesSkippedUnsupported));
   return `_${parts.join(', ')}._`;
 }
 

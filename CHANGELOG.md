@@ -1,5 +1,37 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- The report now says how many single-file components (`.vue`, `.svelte`) it
+  saw and did not analyze. Those files are dropped by the extension filter
+  before the parser, so until now they appeared in no count at all — not
+  unparsable, not an analysis error — and a project whose renderer is written
+  entirely in components produced a report that looked complete, just with
+  fewer files. The note says what that means rather than only that files were
+  skipped: if your renderer lives in those files, it is outside this scan.
+  It is phrased as a condition, not a claim, because the tool cannot know
+  that a given component is renderer code.
+- Only components are counted. Counting every unsupported extension was
+  measured and is useless as a signal — one project has over four thousand,
+  almost all images, JSON and markdown.
+
+### Note
+
+- **Nothing is detected that was not detected before.** The files are counted,
+  never opened; finding counts and exit codes are identical to the previous
+  release, verified across six projects in all three modes. Extracting the
+  `<script>` block from components and analyzing it was measured separately
+  and deliberately not done: across 758 components in six real projects it
+  would have produced nine heuristic findings and no high-confidence ones.
+- **Output format:** the JSON `summary` gains `filesSkippedUnsupported`, a
+  number that is always present (zero included) like the other counts, so
+  `schemaVersion` stays `1`. The terminal and Markdown reports add a line only
+  when the count is non-zero, matching the existing skip notes. SARIF is
+  unchanged — it carries none of the scan counts today, and adding this one
+  alone would be inconsistent.
+
 ## 0.1.10 - 2026-08-08
 
 ### Added

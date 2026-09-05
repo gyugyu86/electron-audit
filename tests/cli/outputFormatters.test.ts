@@ -11,6 +11,7 @@ const META: ReportMeta = {
   filesAnalysisErrors: 0,
   filesSkippedOversized: 0,
   filesSkippedOutsideRoot: 0,
+  filesSkippedUnsupported: 0,
 };
 
 function finding(partial: Partial<Finding> & { ruleId: string; severity: Severity; file: string; line: number }): Finding {

@@ -11,6 +11,7 @@ const META: ReportMeta = {
   filesAnalysisErrors: 0,
   filesSkippedOversized: 0,
   filesSkippedOutsideRoot: 0,
+  filesSkippedUnsupported: 0,
 };
 
 function rule(id: string, severity: Severity): NodeRule {
@@ -104,6 +105,7 @@ describe('formatSarifReport uri base (cwd-relative)', () => {
     filesAnalysisErrors: 0,
     filesSkippedOversized: 0,
     filesSkippedOutsideRoot: 0,
+    filesSkippedUnsupported: 0,
   });
 
   const uriOf = (rootDir: string, file: string, cwd: string): string => {
