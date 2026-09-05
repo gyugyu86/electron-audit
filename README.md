@@ -117,9 +117,9 @@ rule:
 **Single-file components (`.vue`, `.svelte`) are not scanned.** Their
 JavaScript lives inside a `<script>` block that has to be extracted before
 anything can parse it, which this tool does not do yet. If your renderer is
-written in SFCs, the renderer is outside the analysis — the report will
-complete normally and simply say it found fewer files, so check the scanned
-file count against what you expect.
+written in SFCs, the renderer is outside the analysis — the report completes
+normally and says how many such files it saw and did not analyze, so check
+that count against what you expect.
 
 ### Confidence: certain vs heuristic
 
@@ -169,18 +169,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: gyugyu86/electron-audit@v0.1.10
+      - uses: gyugyu86/electron-audit@v0.1.11
         with:
           path: .                  # project to scan
-          version: 0.1.10           # pin the scanner (default: latest)
+          version: 0.1.11           # pin the scanner (default: latest)
           # fail-on-findings: true # fail on high-confidence critical/high (default)
           # upload: true           # upload to code scanning (default)
 ```
 
-`@v0.1.10` is the recommended pin. For the strongest supply-chain guarantee, pin
+`@v0.1.11` is the recommended pin. For the strongest supply-chain guarantee, pin
 the commit SHA the tag resolves to instead — an author can move a tag, but not a
-commit SHA. Run `git rev-parse v0.1.10^{commit}` and use
-`uses: gyugyu86/electron-audit@<sha>  # v0.1.10`.
+commit SHA. Run `git rev-parse v0.1.11^{commit}` and use
+`uses: gyugyu86/electron-audit@<sha>  # v0.1.11`.
 
 **Pin the scanner too.** The `version:` input defaults to `latest`, so pinning
 only the action (by tag or SHA) does **not** pin the scanner — it will resolve
@@ -247,9 +247,9 @@ not a weakness; it's the condition for trust.
   the "latest Electron" baseline lives in the source, so it goes stale over time
   (hence heuristic). Updating it is a one-line constant change.
 - **Single-file components are not scanned at all** (`.vue`, `.svelte`) — see
-  [What gets scanned](#what-gets-scanned). Unlike the misses above this one is
-  silent: the files are dropped before the parser, so they are counted as
-  neither scanned nor unparsable.
+  [What gets scanned](#what-gets-scanned). The files are dropped before the
+  parser, so they are counted as neither scanned nor unparsable; the report
+  says how many it saw, and that is all it can say about them.
 - **No runtime behavior** — the general limit of static analysis.
 
 Deferred rules: **EA043** (will-navigate/webview — needs full HTML parsing) and

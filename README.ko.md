@@ -109,8 +109,8 @@ electron-audit <경로> --config <설정파일>   # 규칙 on/off·심각도 오
 **SFC(single-file component, `.vue`·`.svelte`)는 스캔하지 않습니다.** 그 안의
 JavaScript는 `<script>` 블록을 먼저 추출해야 파싱할 수 있는데, 이 도구는 아직 그걸
 하지 않습니다. 렌더러를 SFC로 작성한 프로젝트라면 **렌더러가 통째로 분석 밖**이라는
-뜻입니다 — 리포트는 정상 완료되고 그저 수집 파일 수가 적게 나올 뿐이므로, 스캔된
-파일 수가 예상과 맞는지 확인하세요.
+뜻입니다 — 리포트는 정상 완료되되 분석하지 않은 SFC가 몇 개였는지 알려 주므로,
+그 수가 예상과 맞는지 확인하세요.
 
 ### confidence: 확실 vs 휴리스틱
 
@@ -159,18 +159,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: gyugyu86/electron-audit@v0.1.10
+      - uses: gyugyu86/electron-audit@v0.1.11
         with:
           path: .                  # 스캔할 프로젝트 경로
-          version: 0.1.10           # 스캐너 버전 고정 (기본: latest)
+          version: 0.1.11           # 스캐너 버전 고정 (기본: latest)
           # fail-on-findings: true # high-confidence critical/high면 체크 실패 (기본)
           # upload: true           # 코드 스캐닝 업로드 (기본)
 ```
 
-`@v0.1.10` 태그 고정을 권장합니다. supply-chain 관점에서 가장 강한 보장을 원하면
+`@v0.1.11` 태그 고정을 권장합니다. supply-chain 관점에서 가장 강한 보장을 원하면
 태그가 가리키는 커밋 SHA로 고정하세요 — 저자는 태그는 옮길 수 있어도 커밋 SHA는
-옮길 수 없습니다. `git rev-parse v0.1.10^{commit}`로 조회해
-`uses: gyugyu86/electron-audit@<sha>  # v0.1.10` 형태로 씁니다.
+옮길 수 없습니다. `git rev-parse v0.1.11^{commit}`로 조회해
+`uses: gyugyu86/electron-audit@<sha>  # v0.1.11` 형태로 씁니다.
 
 **스캐너 버전도 고정하세요.** `version:` 입력의 기본값은 `latest`라, 액션만
 고정(태그·SHA)해도 스캐너는 **고정되지 않습니다** — 실행 시점의 npm `latest`로
@@ -228,8 +228,8 @@ fork에서 올라온 PR에서는 GitHub이 `security-events: write`를 부여하
 - **버전 기준은 하드코딩**(EA062): 오프라인·CI 재현성을 위해 "최신 Electron" 기준값이
   코드에 박혀 있어 시간이 지나면 낡습니다(그래서 heuristic). 갱신은 소스 상수 한 줄.
 - **SFC(`.vue`·`.svelte`)는 아예 스캔되지 않습니다** — [무엇을 스캔하는가](#무엇을-스캔하는가)
-  참조. 위 미탐들과 달리 이건 조용합니다: 파서에 닿기 전에 걸러지므로 스캔된 것으로도,
-  파싱 실패로도 잡히지 않습니다.
+  참조. 파서에 닿기 전에 걸러지므로 스캔된 것으로도, 파싱 실패로도 잡히지 않으며,
+  리포트는 그런 파일이 몇 개 있었는지만 알려 줍니다.
 - **런타임 동작은 못 봅니다**: 정적 분석의 일반 한계.
 
 보류 규칙: **EA043**(will-navigate/webview — 완전 HTML 파싱 필요),
